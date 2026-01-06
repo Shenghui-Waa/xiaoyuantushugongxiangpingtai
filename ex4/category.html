@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>图书分类 - 校园图书共享平台</title>
+  <!-- 引入外部资源 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  
+  <!-- Tailwind配置（与首页一致） -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#4F46E5', // 主色调：靛蓝色
+            secondary: '#10B981', // 辅助色：绿色
+            accent: '#F59E0B', // 强调色：橙色
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      }
+    }
+  </script>
+  
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .card-hover {
+        @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+      }
+      .text-balance {
+        text-wrap: balance;
+      }
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+      }
+      .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .back-to-top-btn {
+        @apply fixed bottom-6 right-6 w-12 h-12 rounded-full bg-primary text-white shadow-lg flex items-center justify-center opacity-0 invisible transition-all duration-300 hover:bg-primary/90 z-40;
+      }
+      .back-to-top-btn.show {
+        @apply opacity-100 visible;
+      }
+      .quick-borrow-btn {
+        @apply absolute bottom-3 left-1/2 -translate-x-1/2 bg-secondary text-white text-xs px-3 py-1.5 rounded-lg shadow-md opacity-0 invisible transition-all duration-300 hover:bg-secondary/90;
+      }
+      .book-card:hover .quick-borrow-btn {
+        @apply opacity-100 visible bottom-5;
+      }
+      .category-active {
+        @apply bg-primary/10 text-primary border-l-4 border-primary;
+      }
+    }
+  </style>
+</head>
+
+<body class="bg-gray-50 font-sans text-gray-800">
+  <!-- 顶部导航栏（与首页一致） -->
+  <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm transition-all duration-300" id="main-header">
+    <div class="container mx-auto px-4 py-3 flex items-center justify-between" id="header-content">
+      <!-- 平台Logo -->
+      <div class="flex items-center space-x-2">
+        <i class="fa fa-book text-primary text-3xl"></i>
+        <h1 class="text-xl font-bold text-primary">校园图书共享</h1>
+      </div>
+      
+      <!-- 搜索框 - 桌面版 -->
+      <div class="hidden md:flex items-center flex-1 max-w-xl mx-6">
+        <div class="relative w-full">
+          <input type="text" id="search-input" placeholder="搜索书名、作者或ISBN..." 
+                 class="w-full pl-10 pr-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all duration-300"
+                 onfocus="this.parentElement.classList.add('w-[110%]')"
+                 onblur="this.parentElement.classList.remove('w-[110%]')">
+          <i class="fa fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+          
+          <!-- 搜索结果下拉框 -->
+          <div id="search-results" class="absolute left-0 right-0 mt-2 bg-white rounded-lg shadow-lg overflow-hidden hidden z-10 max-h-60 overflow-y-auto">
+            <!-- 搜索结果将通过JS动态生成 -->
+          </div>
+        </div>
+      </div>
+      
+      <!-- 导航菜单 -->
+      <nav class="flex items-center space-x-2 md:space-x-4">
+        <button class="md:hidden p-2 rounded-full hover:bg-gray-100 transition-colors" id="mobile-search-btn">
+          <i class="fa fa-search text-gray-600"></i>
+        </button>
+        <a href="index.html" class="hidden md:flex items-center px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors nav-link" data-nav="home">
+          <i class="fa fa-home mr-1"></i>首页
+        </a>
+        <a href="category.html" class="hidden md:flex items-center px-3 py-2 rounded-lg bg-primary/10 text-primary transition-colors nav-link" data-nav="category">
+          <i class="fa fa-th-list mr-1"></i>分类
+        </a>
+        <button id="user-center-btn" class="p-2 rounded-full hover:bg-gray-100 transition-colors relative">
+          <i class="fa fa-user text-gray-600"></i>
+          <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+        </button>
+      </nav>
+    </div>
+    
+    <!-- 移动端搜索框 (默认隐藏) -->
+    <div id="mobile-search" class="md:hidden px-4 pb-3 hidden">
+      <div class="relative">
+        <input type="text" placeholder="搜索书名、作者或ISBN..." 
+               class="w-full pl-10 pr-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/50">
+        <i class="fa fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+      </div>
+    </div>
+  </header>
+
+  <main class="container mx-auto px-4 py-6">
+    <!-- 页面标题与筛选栏 -->
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold mb-4 flex items-center" id="category-title">
+        <i class="fa fa-th-large text-primary mr-2"></i>全部图书分类
+      </h1>
+      
+      <!-- 筛选与排序控件 -->
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 bg-white p-4 rounded-xl shadow-sm">
+        <!-- 移动端分类折叠按钮 -->
+        <button id="mobile-category-toggle" class="md:hidden flex items-center px-3 py-2 bg-gray-100 rounded-lg text-gray-700">
+          <i class="fa fa-filter mr-2"></i> 分类筛选
+          <i class="fa fa-angle-down ml-1 transition-transform duration-300" id="category-toggle-icon"></i>
+        </button>
+        
+        <!-- 排序下拉框 -->
+        <div class="w-full sm:w-auto">
+          <label for="sort-select" class="text-sm text-gray-600 mr-2">排序方式：</label>
+          <select id="sort-select" class="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all">
+            <option value="newest">最新上架</option>
+            <option value="popular">热门程度</option>
+            <option value="title">书名排序</option>
+          </select>
+        </div>
+        
+        <!-- 筛选结果计数 -->
+        <div class="text-sm text-gray-500" id="book-count-text">
+          共 <span class="font-semibold text-primary">28</span> 本图书
+        </div>
+      </div>
+    </div>
+    
+    <div class="flex flex-col md:flex-row gap-6">
+      <!-- 分类侧边栏 -->
+      <aside class="w-full md:w-64 shrink-0" id="category-sidebar">
+        <div class="bg-white rounded-xl shadow-sm p-4 sticky top-24">
+          <h3 class="font-bold text-lg mb-4 flex items-center">
+            <i class="fa fa-list-ul text-primary mr-2"></i>图书分类
+          </h3>
+          
+          <!-- 分类列表 -->
+          <ul class="space-y-1 category-list">
+            <li>
+              <a href="category.html?category=all" class="flex items-center px-3 py-2 rounded-lg category-item category-active transition-colors" data-category="all">
+                <span class="ml-1">全部图书</span>
+                <span class="ml-auto bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">28</span>
+              </a>
+            </li>
+            <li>
+              <a href="category.html?category=textbook" class="flex items-center px-3 py-2 rounded-lg category-item hover:bg-gray-50 transition-colors" data-category="textbook">
+                <span class="ml-1">教材</span>
+                <span class="ml-auto bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">8</span>
+              </a>
+            </li>
+            <li>
+              <a href="category.html?category=novel" class="flex items-center px-3 py-2 rounded-lg category-item hover:bg-gray-50 transition-colors" data-category="novel">
+                <span class="ml-1">小说</span>
+                <span class="ml-auto bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">6</span>
+              </a>
+            </li>
+            <li>
+              <a href="category.html?category=professional" class="flex items-center px-3 py-2 rounded-lg category-item hover:bg-gray-50 transition-colors" data-category="professional">
+                <span class="ml-1">专业书籍</span>
+                <span class="ml-auto bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">5</span>
+              </a>
+            </li>
+            <li>
+              <a href="category.html?category=history" class="flex items-center px-3 py-2 rounded-lg category-item hover:bg-gray-50 transition-colors" data-category="history">
+                <span class="ml-1">历史</span>
+                <span class="ml-auto bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">3</span>
+              </a>
+            </li>
+            <li>
+              <a href="category.html?category=philosophy" class="flex items-center px-3 py-2 rounded-lg category-item hover:bg-gray-50 transition-colors" data-category="philosophy">
+                <span class="ml-1">哲学</span>
+                <span class="ml-auto bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">2</span>
+              </a>
+            </li>
+            <li>
+              <a href="category.html?category=popular-science" class="flex items-center px-3 py-2 rounded-lg category-item hover:bg-gray-50 transition-colors" data-category="popular-science">
+                <span class="ml-1">科普</span>
+                <span class="ml-auto bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">2</span>
+              </a>
+            </li>
+            <li>
+              <a href="category.html?category=art" class="flex items-center px-3 py-2 rounded-lg category-item hover:bg-gray-50 transition-colors" data-category="art">
+                <span class="ml-1">艺术</span>
+                <span class="ml-auto bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">2</span>
+              </a>
+            </li>
+          </ul>
+          
+          <!-- 分类标签云 -->
+          <div class="mt-6">
+            <h3 class="font-bold text-lg mb-4 flex items-center">
+              <i class="fa fa-tags text-primary mr-2"></i>热门标签
+            </h3>
+            <div class="flex flex-wrap gap-2">
+              <span class="px-3 py-1 bg-blue-50 text-primary text-sm rounded-full hover:bg-primary hover:text-white cursor-pointer transition-colors">计算机</span>
+              <span class="px-3 py-1 bg-blue-50 text-primary text-sm rounded-full hover:bg-primary hover:text-white cursor-pointer transition-colors">文学</span>
+              <span class="px-3 py-1 bg-blue-50 text-primary text-sm rounded-full hover:bg-primary hover:text-white cursor-pointer transition-colors">数学</span>
+              <span class="px-3 py-1 bg-blue-50 text-primary text-sm rounded-full hover:bg-primary hover:text-white cursor-pointer transition-colors">科幻</span>
+              <span class="px-3 py-1 bg-blue-50 text-primary text-sm rounded-full hover:bg-primary hover:text-white cursor-pointer transition-colors">心理学</span>
+              <span class="px-3 py-1 bg-blue-50 text-primary text-sm rounded-full hover:bg-primary hover:text-white cursor-pointer transition-colors">编程</span>
+              <span class="px-3 py-1 bg-blue-50 text-primary text-sm rounded-full hover:bg-primary hover:text-white cursor-pointer transition-colors">历史</span>
+              <span class="px-3 py-1 bg-blue-50 text-primary text-sm rounded-full hover:bg-primary hover:text-white cursor-pointer transition-colors">艺术设计</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+      
+      <!-- 图书列表区 -->
+      <div class="flex-1">
+        <!-- 图书网格 -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="book-grid">
+          <!-- 图书卡片将通过JS动态生成 -->
+        </div>
+        
+        <!-- 空状态提示 -->
+        <div id="empty-state" class="hidden flex-col items-center justify-center py-16 text-center">
+          <div class="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+            <i class="fa fa-book text-gray-300 text-4xl"></i>
+          </div>
+          <h3 class="text-xl font-bold text-gray-700 mb-2">暂无相关图书</h3>
+          <p class="text-gray-500 mb-4">换一个分类或搜索关键词试试吧</p>
+          <a href="category.html" class="bg-primary text-white px-4 py-2 rounded-lg transition-colors">
+            查看全部图书
+          </a>
+        </div>
+        
+        <!-- 分页控件 -->
+        <div class="mt-8 flex justify-center" id="pagination">
+          <nav class="flex items-center space-x-1">
+            <a href="#" class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" aria-disabled="true">
+              <i class="fa fa-chevron-left text-xs"></i>
+            </a>
+            <a href="#" class="w-10 h-10 flex items-center justify-center rounded-lg bg-primary text-white">1</a>
+            <a href="#" class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">2</a>
+            <a href="#" class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">3</a>
+            <span class="w-10 h-10 flex items-center justify-center text-gray-400">...</span>
+            <a href="#" class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">8</a>
+            <a href="#" class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+              <i class="fa fa-chevron-right text-xs"></i>
+            </a>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 页脚（与首页一致） -->
+  <footer class="bg-gray-800 text-white py-8 mt-10">
+    <div class="container mx-auto px-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div>
+          <div class="flex items-center space-x-2 mb-4">
+            <i class="fa fa-book text-primary text-2xl"></i>
+            <h3 class="text-lg font-bold">校园图书共享</h3>
+          </div>
+          <p class="text-gray-400 text-sm">连接校内有闲置图书的学生与有借阅需求的学生，实现图书资源循环利用，营造校园阅读氛围。</p>
+        </div>
+        <div>
+          <h4 class="font-bold mb-4">快速链接</h4>
+          <ul class="space-y-2 text-gray-400 text-sm">
+            <li><a href="#" class="hover:text-white transition-colors">关于我们</a></li>
+            <li><a href="#" class="hover:text-white transition-colors">使用指南</a></li>
+            <li><a href="#" class="hover:text-white transition-colors">借阅规则</a></li>
+            <li><a href="#" class="hover:text-white transition-colors">常见问题</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-bold mb-4">联系我们</h4>
+          <ul class="space-y-2 text-gray-400 text-sm">
+            <li class="flex items-center"><i class="fa fa-envelope-o mr-2"></i> support@bookshare.edu</li>
+            <li class="flex items-center"><i class="fa fa-phone mr-2"></i> 123-4567-8910</li>
+            <li class="flex items-center"><i class="fa fa-map-marker mr-2"></i> 图书馆302室</li>
+          </ul>
+          <div class="mt-4 flex space-x-4">
+            <a href="#" class="text-gray-400 hover:text-white transition-colors transform hover:scale-110 duration-300"><i class="fa fa-weixin text-xl"></i></a>
+            <a href="#" class="text-gray-400 hover:text-white transition-colors transform hover:scale-110 duration-300"><i class="fa fa-weibo text-xl"></i></a>
+            <a href="#" class="text-gray-400 hover:text-white transition-colors transform hover:scale-110 duration-300"><i class="fa fa-qq text-xl"></i></a>
+          </div>
+        </div>
+      </div>
+      <div class="border-t border-gray-700 mt-6 pt-4 text-center text-gray-500 text-sm">
+        &copy; 2023 校园图书共享平台 版权所有
+      </div>
+    </div>
+  </footer>
+
+  <!-- 个人中心侧边栏 (与首页一致) -->
+  <div id="user-center" class="fixed inset-y-0 right-0 w-full md:w-80 bg-white shadow-xl z-50 transform translate-x-full transition-transform duration-300">
+    <div class="h-full flex flex-col">
+      <div class="p-6 border-b">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-bold">个人中心</h2>
+          <button id="close-user-center" class="text-gray-400 hover:text-gray-600 transition-colors">
+            <i class="fa fa-times"></i>
+          </button>
+        </div>
+        
+        <div class="flex items-center">
+          <img src="https://picsum.photos/id/91/100/100" alt="用户头像" class="w-16 h-16 rounded-full object-cover mr-4">
+          <div>
+            <p class="font-medium">李华</p>
+            <p class="text-sm text-gray-600">软件学院 · 大二</p>
+            <button class="text-primary text-sm hover:underline mt-1">编辑资料</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="flex-1 overflow-y-auto p-4">
+        <div class="mb-6">
+          <h3 class="text-sm font-semibold text-gray-500 uppercase mb-3">我的功能</h3>
+          <ul class="space-y-1">
+            <li>
+              <a href="#" class="flex items-center p-3 rounded-lg hover:bg-gray-100 transition-colors">
+                <i class="fa fa-book text-primary w-6"></i>
+                <span class="ml-3">我的借阅</span>
+              </a>
+            </li>
+            <li>
+              <a href="#" class="flex items-center p-3 rounded-lg hover:bg-gray-100 transition-colors">
+                <i class="fa fa-bookmark text-primary w-6"></i>
+                <span class="ml-3">我的图书</span>
+              </a>
+            </li>
+            <li>
+              <a href="#" class="flex items-center p-3 rounded-lg hover:bg-gray-100 transition-colors">
+                <i class="fa fa-heart text-primary w-6"></i>
+                <span class="ml-3">我的收藏</span>
+              </a>
+            </li>
+            <li>
+              <a href="#" class="flex items-center p-3 rounded-lg hover:bg-gray-100 transition-colors">
+                <i class="fa fa-plus-circle text-primary w-6"></i>
+                <span class="ml-3">发布图书</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+        
+        <div class="mb-6">
+          <h3 class="text-sm font-semibold text-gray-500 uppercase mb-3">消息通知</h3>
+          <ul class="space-y-2">
+            <li class="bg-blue-50 rounded-lg p-3">
+              <div class="flex justify-between">
+                <p class="font-medium text-sm">张明接受了你的借阅申请</p>
+                <span class="text-xs text-gray-500">10分钟前</span>
+              </div>
+              <p class="text-xs text-gray-600 mt-1">《深入理解计算机系统》的借阅申请已被接受，请在约定时间前往取书</p>
+            </li>
+            <li class="bg-white rounded-lg p-3 border border-gray-100">
+              <div class="flex justify-between">
+                <p class="font-medium text-sm">新书上架提醒</p>
+                <span class="text-xs text-gray-500">1小时前</span>
+              </div>
+              <p class="text-xs text-gray-600 mt-1">你关注的分类有3本新书上架，快去看看吧</p>
+            </li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="p-4 border-t">
+        <button class="w-full flex items-center justify-center p-3 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">
+          <i class="fa fa-cog mr-2"></i>
+          <span>设置</span>
+        </button>
+        <button class="w-full flex items-center justify-center p-3 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors mt-3">
+          <i class="fa fa-sign-out mr-2"></i>
+          <span>退出登录</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 背景遮罩 (与首页一致) -->
+  <div id="overlay" class="fixed inset-0 bg-black/30 z-40 hidden opacity-0 transition-opacity duration-300"></div>
+
+  <!-- 回到顶部按钮 -->
+  <button id="back-to-top" class="back-to-top-btn" onclick="scrollToTop()">
+    <i class="fa fa-chevron-up"></i>
+  </button>
+
+  <!-- JavaScript -->
+  <script>
+    // 扩展图书数据（包含更多分类和详情）
+    const allBooks = [
+      // 教材类
+      {
+        id: 11,
+        title: "线性代数及其应用",
+        author: "吉尔伯特·斯特朗",
+        cover: "https://picsum.photos/id/42/300/400",
+        category: "教材",
+        status: "可借阅",
+        isbn: "9787111407010",
+        publishDate: "2023-01-15",
+        hotScore: 86
+      },
+      {
+        id: 12,
+        title: "普通物理学",
+        author: "程守洙",
+        cover: "https://picsum.photos/id/190/300/400",
+        category: "教材",
+        status: "可借阅",
+        isbn: "9787040439324",
+        publishDate: "2023-02-20",
+        hotScore: 78
+      },
+      {
+        id: 13,
+        title: "高等数学（上册）",
+        author: "同济大学数学系",
+        cover: "https://picsum.photos/id/175/300/400",
+        category: "教材",
+        status: "可借阅",
+        isbn: "9787040532734",
+        publishDate: "2023-03-10",
+        hotScore: 92
+      },
+      {
+        id: 14,
+        title: "大学物理实验",
+        author: "张三",
+        cover: "https://picsum.photos/id/165/300/400",
+        category: "教材",
+        status: "已借出",
+        isbn: "9787040498459",
+        publishDate: "2023-04-05",
+        hotScore: 65
+      },
+      {
+        id: 15,
+        title: "C语言程序设计",
+        author: "谭浩强",
+        cover: "https://picsum.photos/id/155/300/400",
+        category: "教材",
+        status: "可借阅",
+        isbn: "9787115546981",
+        publishDate: "2023-05-12",
+        hotScore: 89
+      },
+      {
+        id: 16,
+        title: "概率论与数理统计",
+        author: "茆诗松",
+        cover: "https://picsum.photos/id/145/300/400",
+        category: "教材",
+        status: "可借阅",
+        isbn: "9787040536944",
+        publishDate: "2023-06-18",
+        hotScore: 72
+      },
+      {
+        id: 17,
+        title: "大学英语（第三版）",
+        author: "李荫华",
+        cover: "https://picsum.photos/id/135/300/400",
+        category: "教材",
+        status: "可借阅",
+        isbn: "9787544663961",
+        publishDate: "2023-07-22",
+        hotScore: 81
+      },
+      {
+        id: 18,
+        title: "数据结构",
+        author: "严蔚敏",
+        cover: "https://picsum.photos/id/125/300/400",
+        category: "教材",
+        status: "已借出",
+        isbn: "9787111637814",
+        publishDate: "2023-08-30",
+        hotScore: 94
+      },
+      
+      // 小说类
+      {
+        id: 19,
+        title: "百年孤独",
+        author: "加西亚·马尔克斯",
+        cover: "https://picsum.photos/id/20/300/400",
+        category: "小说",
+        status: "可借阅",
+        isbn: "9787532755006",
+        publishDate: "2023-01-05",
+        hotScore: 98
+      },
+      {
+        id: 20,
+        title: "三体",
+        author: "刘慈欣",
+        cover: "https://picsum.photos/id/180/300/400",
+        category: "小说",
+        status: "可借阅",
+        isbn: "9787536692930",
+        publishDate: "2023-02-18",
+        hotScore: 96
+      },
+      {
+        id: 21,
+        title: "活着",
+        author: "余华",
+        cover: "https://picsum.photos/id/240/300/400",
+        category: "小说",
+        status: "已借出",
+        isbn: "9787506360243",
+        publishDate: "2023-03-25",
+        hotScore: 93
+      },
+      {
+        id: 22,
+        title: "解忧杂货店",
+        author: "东野圭吾",
+        cover: "https://picsum.photos/id/230/300/400",
+        category: "小说",
+        status: "可借阅",
+        isbn: "9787544270878",
+        publishDate: "2023-04-10",
+        hotScore: 88
+      },
+      {
+        id: 23,
+        title: "追风筝的人",
+        author: "卡勒德·胡赛尼",
+        cover: "https://picsum.photos/id/220/300/400",
+        category: "小说",
+        status: "可借阅",
+        isbn: "9787530208028",
+        publishDate: "2023-05-15",
+        hotScore: 85
+      },
+      {
+        id: 24,
+        title: "围城",
+        author: "钱钟书",
+        cover: "https://picsum.photos/id/210/300/400",
+        category: "小说",
+        status: "可借阅",
+        isbn: "9787020102999",
+        publishDate: "2023-06-20",
+        hotScore: 82
+      },
+      
+      // 专业书籍类
+      {
+        id: 25,
+        title: "深入理解计算机系统",
+        author: "兰德尔·布莱恩特",
+        cover: "https://picsum.photos/id/24/300/400",
+        category: "专业书籍",
+        status: "可借阅",
+        isbn: "9787111544937",
+        publishDate: "2023-01-20",
+        hotScore: 95
+      },
+      {
+        id: 26,
+        title: "JavaScript高级程序设计",
+        author: "尼古拉斯·泽卡斯",
+        cover: "https://picsum.photos/id/21/300/400",
+        category: "专业书籍",
+        status: "可借阅",
+        isbn: "9787115545381",
+        publishDate: "2023-02-10",
+        hotScore: 91
+      },
+      {
+        id: 27,
+        title: "算法导论",
+        author: "托马斯·科尔曼",
+        cover: "https://picsum.photos/id/119/300/400",
+        category: "专业书籍",
+        status: "可借阅",
+        isbn: "9787111407010",
+        publishDate: "2023-03-05",
+        hotScore: 89
+      },
+      {
+        id: 28,
+        title: "数据库系统概念",
+        author: "西尔伯沙茨",
+        cover: "https://picsum.photos/id/109/300/400",
+        category: "专业书籍",
+        status: "已借出",
+        isbn: "9787111544612",
+        publishDate: "2023-04-18",
+        hotScore: 84
+      },
+      {
+        id: 29,
+        title: "机器学习",
+        author: "周志华",
+        cover: "https://picsum.photos/id/99/300/400",
+        category: "专业书籍",
+        status: "可借阅",
+        isbn: "9787111540937",
+        publishDate: "2023-05-22",
+        hotScore: 97
+      },
+      
+      // 历史类
+      {
+        id: 30,
+        title: "人类简史",
+        author: "尤瓦尔·赫拉利",
+        cover: "https://picsum.photos/id/36/300/400",
+        category: "历史",
+        status: "已借出",
+        isbn: "9787508647357",
+        publishDate: "2023-01-25",
+        hotScore: 94
+      },
+      {
+        id: 31,
+        title: "中国通史",
+        author: "吕思勉",
+        cover: "https://picsum.photos/id/46/300/400",
+        category: "历史",
+        status: "可借阅",
+        isbn: "9787512660396",
+        publishDate: "2023-03-12",
+        hotScore: 87
+      },
+      {
+        id: 32,
+        title: "明朝那些事儿",
+        author: "当年明月",
+        cover: "https://picsum.photos/id/56/300/400",
+        category: "历史",
+        status: "可借阅",
+        isbn: "9787505719688",
+        publishDate: "2023-05-30",
+        hotScore: 92
+      },
+      
+      // 哲学类
+      {
+        id: 33,
+        title: "苏菲的世界",
+        author: "乔斯坦·贾德",
+        cover: "https://picsum.photos/id/66/300/400",
+        category: "哲学",
+        status: "可借阅",
+        isbn: "9787544259840",
+        publishDate: "2023-02-08",
+        hotScore: 83
+      },
+      {
+        id: 34,
+        title: "西方哲学史",
+        author: "伯特兰·罗素",
+        cover: "https://picsum.photos/id/76/300/400",
+        category: "哲学",
+        status: "可借阅",
+        isbn: "9787108029043",
+        publishDate: "2023-04-25",
+        hotScore: 79
+      },
+      
+      // 科普类
+      {
+        id: 35,
+        title: "时间简史",
+        author: "史蒂芬·霍金",
+        cover: "https://picsum.photos/id/86/300/400",
+        category: "科普",
+        status: "可借阅",
+        isbn: "9787535732309",
+        publishDate: "2023-03-18",
+        hotScore: 90
+      },
+      {
+        id: 36,
+        title: "万物简史",
+        author: "比尔·布莱森",
+        cover: "https://picsum.photos/id/96/300/400",
+        category: "科普",
+        status: "已借出",
+        isbn: "9787535745242",
+        publishDate: "2023-06-15",
+        hotScore: 81
+      },
+      
+      // 艺术类
+      {
+        id: 37,
+        title: "艺术的故事",
+        author: "贡布里希",
+        cover: "https://picsum.photos/id/106/300/400",
+        category: "艺术",
+        status: "可借阅",
+        isbn: "9787508087291",
+        publishDate: "2023-01-30",
+        hotScore: 77
+      },
+      {
+        id: 38,
+        title: "设计心理学",
+        author: "唐纳德·诺曼",
+        cover: "https://picsum.photos/id/116/300/400",
+        category: "艺术",
+        status: "可借阅",
+        isbn: "9787111558422",
+        publishDate: "2023-05-08",
+        hotScore: 84
+      }
+    ];
+
+    // DOM元素
+    const mobileSearchBtn = document.getElementById('mobile-search-btn');
+    const mobileSearch = document.getElementById('mobile-search');
+    const searchInput = document.getElementById('search-input');
+    const searchResults = document.getElementById('search-results');
+    const userCenterBtn = document.getElementById('user-center-btn');
+    const userCenter = document.getElementById('user-center');
+    const closeUserCenter = document.getElementById('close-user-center');
+    const overlay = document.getElementById('overlay');
+    const backToTopBtn = document.getElementById('back-to-top');
+    const header = document.getElementById('main-header');
+    const headerContent = document.getElementById('header-content');
+    const navLinks = document.querySelectorAll('.nav-link');
+    const bookGrid = document.getElementById('book-grid');
+    const emptyState = document.getElementById('empty-state');
+    const categoryTitle = document.getElementById('category-title');
+    const bookCountText = document.getElementById('book-count-text');
+    const sortSelect = document.getElementById('sort-select');
+    const categoryItems = document.querySelectorAll('.category-item');
+    const mobileCategoryToggle = document.getElementById('mobile-category-toggle');
+    const categoryToggleIcon = document.getElementById('category-toggle-icon');
+    const categorySidebar = document.getElementById('category-sidebar');
+
+    // 1. 移动端搜索框切换
+    mobileSearchBtn.addEventListener('click', () => {
+      mobileSearch.classList.toggle('hidden');
+      if (!mobileSearch.classList.contains('hidden')) {
+        mobileSearch.querySelector('input').focus();
+      }
+    });
+
+    // 2. 移动端分类侧边栏折叠/展开
+    mobileCategoryToggle.addEventListener('click', () => {
+      categorySidebar.classList.toggle('hidden');
+      categoryToggleIcon.classList.toggle('rotate-180');
+    });
+
+    // 3. 回到顶部功能
+    function scrollToTop() {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
+
+    // 监听滚动显示/隐藏回到顶部按钮和导航栏效果
+    window.addEventListener('scroll', () => {
+      if (window.pageYOffset > 300) {
+        backToTopBtn.classList.add('show');
+      } else {
+        backToTopBtn.classList.remove('show');
+      }
+      
+      // 导航栏滚动增强效果
+      if (window.pageYOffset > 50) {
+        header.classList.add('shadow-md', 'py-2');
+        header.classList.remove('shadow-sm', 'py-3');
+        headerContent.classList.add('py-2');
+        headerContent.classList.remove('py-3');
+      } else {
+        header.classList.remove('shadow-md', 'py-2');
+        header.classList.add('shadow-sm', 'py-3');
+        headerContent.classList.remove('py-2');
+        headerContent.classList.add('py-3');
+      }
+    });
+
+    // 4. 导航栏链接active状态
+    navLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        // 移除所有链接的active状态
+        navLinks.forEach(l => {
+          l.classList.remove('bg-primary/10', 'text-primary');
+        });
+        // 添加当前链接的active状态
+        link.classList.add('bg-primary/10', 'text-primary');
+        
+        // 如果是首页链接，跳转到首页
+        if (link.dataset.nav === 'home') {
+          window.location.href = 'index.html';
+        }
+      });
+    });
+
+    // 5. 分类筛选功能
+    function getQueryParam(name) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(name);
+    }
+
+    // 初始化分类选中状态
+    function initCategoryActive() {
+      const currentCategory = getQueryParam('category') || 'all';
+      
+      // 更新分类标题
+      const categoryNames = {
+        'all': '全部图书分类',
+        'textbook': '教材类图书',
+        'novel': '小说类图书',
+        'professional': '专业书籍类图书',
+        'history': '历史类图书',
+        'philosophy': '哲学类图书',
+        'popular-science': '科普类图书',
+        'art': '艺术类图书'
+      };
+      
+      categoryTitle.innerHTML = `<i class="fa fa-th-large text-primary mr-2"></i>${categoryNames[currentCategory] || '全部图书分类'}`;
+      
+      // 更新分类选中状态
+      categoryItems.forEach(item => {
+        if (item.dataset.category === currentCategory) {
+          item.classList.add('category-active');
+          item.classList.remove('hover:bg-gray-50');
+        } else {
+          item.classList.remove('category-active');
+          item.classList.add('hover:bg-gray-50');
+        }
+      });
+      
+      // 筛选图书
+      filterBooks(currentCategory);
+    }
+
+    // 筛选图书
+    function filterBooks(category) {
+      let filteredBooks = allBooks;
+      
+      if (category !== 'all') {
+        // 映射URL分类参数到图书分类名称
+        const categoryMap = {
+          'textbook': '教材',
+          'novel': '小说',
+          'professional': '专业书籍',
+          'history': '历史',
+          'philosophy': '哲学',
+          'popular-science': '科普',
+          'art': '艺术'
+        };
+        
+        const targetCategory = categoryMap[category] || category;
+        filteredBooks = allBooks.filter(book => book.category === targetCategory);
+      }
+      
+      // 应用排序
+      sortBooks(filteredBooks);
+    }
+
+    // 排序图书
+    function sortBooks(books) {
+      const sortType = sortSelect.value;
+      let sortedBooks = [...books];
+      
+      switch (sortType) {
+        case 'newest':
+          // 按发布日期降序
+          sortedBooks.sort((a, b) => new Date(b.publishDate) - new Date(a.publishDate));
+          break;
+        case 'popular':
+          // 按热门分数降序
+          sortedBooks.sort((a, b) => b.hotScore - a.hotScore);
+          break;
+        case 'title':
+          // 按书名升序
+          sortedBooks.sort((a, b) => a.title.localeCompare(b.title));
+          break;
+      }
+      
+      // 渲染图书列表
+      renderBooks(sortedBooks);
+    }
+
+    // 渲染图书卡片
+    function renderBooks(books) {
+      if (books.length === 0) {
+        bookGrid.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        bookCountText.innerHTML = `共 <span class="font-semibold text-primary">0</span> 本图书`;
+        return;
+      }
+      
+      emptyState.classList.add('hidden');
+      bookCountText.innerHTML = `共 <span class="font-semibold text-primary">${books.length}</span> 本图书`;
+      
+      let bookHTML = '';
+      books.forEach(book => {
+        // 检查是否已收藏
+        const favorites = JSON.parse(localStorage.getItem('bookFavorites') || '[]');
+        const isFavorite = favorites.includes(book.id);
+        
+        bookHTML += `
+          <div class="bg-white rounded-xl overflow-hidden shadow-sm card-hover book-card relative" data-id="${book.id}">
+            <div class="relative">
+              <img src="${book.cover}" alt="${book.title}" class="w-full h-48 object-cover">
+              <span class="absolute top-2 right-2 bg-${book.status === '可借阅' ? 'secondary' : 'gray-500'} text-white text-xs px-2 py-1 rounded-full">${book.status}</span>
+              <!-- 快速借阅按钮 -->
+              <button class="quick-borrow-btn flex items-center ${book.status !== '可借阅' ? 'opacity-50 cursor-not-allowed' : ''}">
+                <i class="fa fa-bookmark-o mr-1"></i> ${book.status === '可借阅' ? '快速借阅' : '已借出'}
+              </button>
+            </div>
+            <div class="p-3">
+              <h3 class="font-semibold text-sm truncate">${book.title}</h3>
+              <p class="text-gray-500 text-xs mt-1">${book.author}</p>
+              <div class="flex justify-between items-center mt-2">
+                <span class="text-xs bg-blue-50 text-primary px-2 py-0.5 rounded-full">${book.category}</span>
+                <i class="fa ${isFavorite ? 'fa-heart text-red-500' : 'fa-heart-o text-gray-300 hover:text-red-500'} cursor-pointer transition-colors favorite-btn" data-id="${book.id}"></i>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      
+      bookGrid.innerHTML = bookHTML;
+      
+      // 绑定图书卡片事件
+      bindBookCardEvents();
+    }
+
+    // 绑定图书卡片相关事件
+    function bindBookCardEvents() {
+      // 图书卡片点击事件
+      document.querySelectorAll('.book-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+          // 避免点击收藏按钮时触发卡片跳转
+          if (e.target.closest('.favorite-btn') || e.target.closest('.quick-borrow-btn')) {
+            return;
+          }
+          const bookId = parseInt(card.dataset.id);
+          const book = allBooks.find(b => b.id === bookId);
+          alert(`查看图书详情: ${book.title}\n作者: ${book.author}\n状态: ${book.status}\nISBN: ${book.isbn}`);
+        });
+      });
+      
+      // 快速借阅按钮点击事件
+      document.querySelectorAll('.quick-borrow-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const bookCard = btn.closest('.book-card');
+          const bookId = parseInt(bookCard.dataset.id);
+          const book = allBooks.find(b => b.id === bookId);
+          
+          if (book.status === '可借阅') {
+            alert(`成功申请借阅《${book.title}》，请等待图书主人确认`);
+          } else {
+            alert(`《${book.title}》当前已借出，可加入预约队列`);
+          }
+        });
+      });
+      
+      // 收藏按钮点击事件
+      document.querySelectorAll('.favorite-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const bookId = parseInt(btn.dataset.id);
+          const book = allBooks.find(b => b.id === bookId);
+          let favorites = JSON.parse(localStorage.getItem('bookFavorites') || '[]');
+          
+          if (favorites.includes(bookId)) {
+            // 取消收藏
+            favorites = favorites.filter(id => id !== bookId);
+            btn.classList.remove('fa-heart', 'text-red-500');
+            btn.classList.add('fa-heart-o', 'text-gray-300');
+            alert(`已取消收藏《${book.title}》`);
+          } else {
+            // 添加收藏
+            favorites.push(bookId);
+            btn.classList.remove('fa-heart-o', 'text-gray-300');
+            btn.classList.add('fa-heart', 'text-red-500');
+            alert(`已收藏《${book.title}》到我的收藏夹`);
+          }
+          
+          // 保存到本地存储
+          localStorage.setItem('bookFavorites', JSON.stringify(favorites));
+        });
+      });
+    }
+
+    // 6. 搜索功能
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase().trim();
+      
+      if (query.length < 1) {
+        searchResults.classList.add('hidden');
+        // 搜索为空时，恢复当前分类的图书
+        initCategoryActive();
+        return;
+      }
+      
+      // 搜索匹配
+      const results = allBooks.filter(book => 
+        book.title.toLowerCase().includes(query) || 
+        book.author.toLowerCase().includes(query) ||
+        book.isbn.includes(query) ||
+        book.category.toLowerCase().includes(query)
+      );
+      
+      if (results.length === 0) {
+        searchResults.innerHTML = `
+          <div class="px-4 py-3 text-gray-500 text-sm">
+            没有找到匹配的图书
+          </div>
+        `;
+        searchResults.classList.remove('hidden');
+        // 显示空状态
+        bookGrid.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        bookCountText.innerHTML = `共 <span class="font-semibold text-primary">0</span> 本图书`;
+        return;
+      }
+      
+      // 生成搜索结果HTML
+      let resultsHTML = '';
+      results.forEach(book => {
+        resultsHTML += `
+          <div class="px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer book-result" data-id="${book.id}">
+            <div class="font-medium">${highlightMatch(book.title, query)}</div>
+            <div class="text-sm text-gray-500">${book.author} · ${book.category}</div>
+          </div>
+        `;
+      });
+      
+      searchResults.innerHTML = resultsHTML;
+      searchResults.classList.remove('hidden');
+      
+      // 渲染搜索结果
+      renderBooks(results);
+      
+      // 为搜索结果添加点击事件
+      document.querySelectorAll('.book-result').forEach(result => {
+        result.addEventListener('click', () => {
+          const bookId = parseInt(result.dataset.id);
+          const book = allBooks.find(b => b.id === bookId);
+          alert(`查看图书详情: ${book.title}\n作者: ${book.author}\n状态: ${book.status}\nISBN: ${book.isbn}`);
+          searchResults.classList.add('hidden');
+          searchInput.value = '';
+          // 恢复当前分类的图书
+          initCategoryActive();
+        });
+      });
+    });
+
+    // 点击页面其他地方关闭搜索结果
+    document.addEventListener('click', (e) => {
+      if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+        searchResults.classList.add('hidden');
+      }
+    });
+
+    // 高亮搜索匹配的文本
+    function highlightMatch(text, query) {
+      const regex = new RegExp(`(${query})`, 'gi');
+      return text.replace(regex, '<span class="bg-yellow-200">$1</span>');
+    }
+
+    // 7. 排序下拉框变化事件
+    sortSelect.addEventListener('change', () => {
+      const currentCategory = getQueryParam('category') || 'all';
+      filterBooks(currentCategory);
+    });
+
+    // 8. 打开/关闭个人中心
+    userCenterBtn.addEventListener('click', () => {
+      userCenter.classList.remove('translate-x-full');
+      overlay.classList.remove('hidden');
+      
+      setTimeout(() => {
+        overlay.classList.add('opacity-100');
+      }, 10);
+      
+      // 禁止背景滚动
+      document.body.style.overflow = 'hidden';
+    });
+
+    function closeUserCenterSidebar() {
+      userCenter.classList.add('translate-x-full');
+      overlay.classList.remove('opacity-100');
+      
+      setTimeout(() => {
+        overlay.classList.add('hidden');
+        document.body.style.overflow = '';
+      }, 300);
+    }
+
+    closeUserCenter.addEventListener('click', closeUserCenterSidebar);
+    overlay.addEventListener('click', closeUserCenterSidebar);
+
+    // 9. 标签云点击事件
+    document.querySelectorAll('.text-sm.rounded-full.hover\\:bg-primary').forEach(tag => {
+      tag.addEventListener('click', () => {
+        const tagText = tag.textContent.trim();
+        // 筛选包含该标签的图书（这里简化为模糊匹配书名和分类）
+        const matchedBooks = allBooks.filter(book => 
+          book.title.includes(tagText) || 
+          book.category.includes(tagText) ||
+          book.author.includes(tagText)
+        );
+        
+        // 更新标题
+        categoryTitle.innerHTML = `<i class="fa fa-tags text-primary mr-2"></i>标签: ${tagText}`;
+        
+        // 渲染匹配的图书
+        renderBooks(matchedBooks);
+      });
+    });
+
+    // 页面加载初始化
+    window.addEventListener('load', () => {
+      // 初始化分类选中状态和图书列表
+      initCategoryActive();
+      
+      // 在移动端默认隐藏分类侧边栏
+      if (window.innerWidth < 768) {
+        categorySidebar.classList.add('hidden');
+      }
+      
+      // 监听窗口大小变化，调整移动端分类侧边栏显示
+      window.addEventListener('resize', () => {
+        if (window.innerWidth >= 768) {
+          categorySidebar.classList.remove('hidden');
+          categoryToggleIcon.classList.remove('rotate-180');
+        } else if (!categorySidebar.classList.contains('hidden')) {
+          categorySidebar.classList.add('hidden');
+          categoryToggleIcon.classList.add('rotate-180');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

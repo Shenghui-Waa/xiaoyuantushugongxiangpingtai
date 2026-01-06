@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图书分类 - 校园图书共享平台</title>
+    <!-- 外部资源引入 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+    <!-- Tailwind 核心配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4F46E5',    // 主色调：靛蓝色
+                        secondary: '#10B981',  // 辅助色：绿色（借阅按钮）
+                        accent: '#F59E0B',     // 强调色：橙色（热门标签）
+                        neutral: '#F3F4F6',    // 中性色：浅灰（背景）
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'PingFang SC', 'Microsoft YaHei', 'sans-serif'],
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' }
+                        },
+                        slideInLeft: {
+                            '0%': { opacity: '0', transform: 'translateX(-20px)' },
+                            '100%': { opacity: '1', transform: 'translateX(0)' }
+                        },
+                        scaleIn: {
+                            '0%': { opacity: '0', transform: 'scale(0.95)' },
+                            '100%': { opacity: '1', transform: 'scale(1)' }
+                        },
+                        pulseSoft: {
+                            '0%, 100%': { opacity: '1' },
+                            '50%': { opacity: '0.7' }
+                        },
+                        hoverPulse: {
+                            '0%': { boxShadow: '0 0 0 0 rgba(79, 70, 229, 0.2)' },
+                            '70%': { boxShadow: '0 0 0 8px rgba(79, 70, 229, 0)' },
+                            '100%': { boxShadow: '0 0 0 0 rgba(79, 70, 229, 0)' }
+                        }
+                    },
+                    animation: {
+                        fadeInUp: 'fadeInUp 0.5s ease-out forwards',
+                        slideInLeft: 'slideInLeft 0.5s ease-out forwards',
+                        scaleIn: 'scaleIn 0.4s ease-out forwards',
+                        pulseSoft: 'pulseSoft 2s infinite',
+                        hoverPulse: 'hoverPulse 1.5s infinite'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- 自定义工具类 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .card-hover {
+                @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:scale-[1.02];
+            }
+            .btn-primary {
+                @apply bg-primary text-white px-4 py-2 rounded-lg transition-all duration-300 hover:bg-primary/90 hover:shadow-md;
+            }
+            .btn-secondary {
+                @apply bg-secondary text-white px-4 py-2 rounded-lg transition-all duration-300 hover:bg-secondary/90 hover:shadow-md;
+            }
+            .text-balance {
+                text-wrap: balance;
+            }
+            .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+            }
+            .scrollbar-hide {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+            .category-active {
+                @apply bg-primary/10 text-primary border-l-4 border-primary font-medium;
+            }
+            .tag-item {
+                @apply px-3 py-1.5 rounded-full text-sm transition-all duration-300 hover:scale-105 hover:shadow-md cursor-pointer;
+            }
+            .search-focus {
+                @apply focus:border-primary focus:ring-2 focus:ring-primary/30 focus:outline-none transition-all duration-300;
+            }
+            .back-to-top {
+                @apply fixed bottom-6 right-6 w-12 h-12 rounded-full bg-primary text-white shadow-lg flex items-center justify-center opacity-0 invisible transition-all duration-300 hover:bg-primary/90 z-40;
+            }
+            .back-to-top.show {
+                @apply opacity-100 visible animate-scaleIn;
+            }
+            .quick-borrow {
+                @apply absolute bottom-3 left-1/2 -translate-x-1/2 bg-secondary text-white text-xs px-3 py-1.5 rounded-lg shadow-md opacity-0 invisible transition-all duration-300 hover:bg-secondary/90;
+            }
+            .book-card:hover .quick-borrow {
+                @apply opacity-100 visible bottom-5 animate-fadeInUp;
+            }
+            /* 新增编辑资料模态框样式 */
+            .edit-profile-modal {
+                @apply fixed inset-0 z-[60] flex items-center justify-center opacity-0 invisible transition-all duration-300;
+            }
+            .edit-profile-modal.show {
+                @apply opacity-100 visible;
+            }
+            .modal-content {
+                @apply relative bg-white rounded-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto transform scale-95 transition-all duration-300;
+            }
+            .edit-profile-modal.show .modal-content {
+                @apply scale-100;
+            }
+            .form-group {
+                @apply mb-4;
+            }
+            .form-label {
+                @apply block text-sm font-medium text-gray-700 mb-2;
+            }
+            .form-input {
+                @apply w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/30 transition-all duration-300;
+            }
+            .form-select {
+                @apply w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/30 bg-white appearance-none transition-all duration-300;
+            }
+            .form-textarea {
+                @apply w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/30 resize-none transition-all duration-300;
+            }
+            .checkbox-group {
+                @apply flex flex-wrap gap-3;
+            }
+            .checkbox-label {
+                @apply inline-flex items-center px-3 py-2 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-all duration-300;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-neutral font-sans text-gray-800">
+<!-- 顶部导航栏（与首页一致） -->
+<header class="sticky top-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm transition-all duration-300" id="main-header">
+    <div class="container mx-auto px-4 py-3 flex items-center justify-between" id="header-content">
+        <!-- Logo区域 -->
+        <div class="flex items-center space-x-2 animate-fadeInUp" style="animation-delay: 0.1s;">
+            <i class="fa fa-book text-primary text-3xl"></i>
+            <h1 class="text-xl font-bold text-primary">校园图书共享</h1>
+        </div>
+
+        <!-- 桌面端搜索框 -->
+        <div class="hidden md:flex items-center flex-1 max-w-xl mx-6 animate-fadeInUp" style="animation-delay: 0.2s;">
+            <div class="relative w-full">
+                <input type="text" id="search-input" placeholder="搜索书名、作者或ISBN..."
+                       class="w-full pl-10 pr-4 py-2 rounded-full border border-gray-200 search-focus"
+                       onfocus="this.parentElement.classList.add('w-[110%]')"
+                       onblur="this.parentElement.classList.remove('w-[110%]')">
+                <i class="fa fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 transition-colors duration-300" id="search-icon"></i>
+
+                <!-- 搜索结果下拉框 -->
+                <div id="search-results" class="absolute left-0 right-0 mt-2 bg-white rounded-lg shadow-lg overflow-hidden hidden z-10 max-h-60 overflow-y-auto animate-fadeInUp">
+                    <!-- 搜索结果动态生成 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 导航菜单 -->
+        <nav class="flex items-center space-x-2 md:space-x-4 animate-fadeInUp" style="animation-delay: 0.3s;">
+            <button class="md:hidden p-2 rounded-full hover:bg-gray-100 transition-colors" id="mobile-search-btn">
+                <i class="fa fa-search text-gray-600"></i>
+            </button>
+            <a href="index.html" class="hidden md:flex items-center px-3 py-2 rounded-lg hover:bg-gray-100 transition-all duration-300 hover:scale-105">
+                <i class="fa fa-home mr-1"></i>首页
+            </a>
+            <a href="category.html" class="hidden md:flex items-center px-3 py-2 rounded-lg bg-primary/10 text-primary transition-all duration-300 hover:scale-105">
+                <i class="fa fa-th-list mr-1"></i>分类
+            </a>
+            <button id="user-center-btn" class="p-2 rounded-full hover:bg-gray-100 transition-all relative">
+                <i class="fa fa-user text-gray-600"></i>
+                <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full animate-pulseSoft"></span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- 移动端搜索框（默认隐藏） -->
+    <div id="mobile-search" class="md:hidden px-4 pb-3 hidden animate-fadeInUp">
+        <div class="relative">
+            <input type="text" placeholder="搜索书名、作者或ISBN..."
+                   class="w-full pl-10 pr-4 py-2 rounded-full border border-gray-200 search-focus">
+            <i class="fa fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        </div>
+    </div>
+</header>
+
+<!-- 主内容区 -->
+<main class="container mx-auto px-4 py-6">
+    <!-- 页面标题与筛选栏 -->
+    <div class="mb-6 animate-fadeInUp" style="animation-delay: 0.4s;">
+        <h1 class="text-2xl font-bold mb-4 flex items-center" id="category-title">
+            <i class="fa fa-th-large text-primary mr-2"></i>全部图书分类
+        </h1>
+
+        <!-- 筛选与排序控件 -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 bg-white p-4 rounded-xl shadow-sm animate-fadeInUp" style="animation-delay: 0.5s;">
+            <!-- 移动端分类折叠按钮 -->
+            <button id="mobile-category-toggle" class="md:hidden flex items-center px-3 py-2 bg-gray-100 rounded-lg text-gray-700 transition-all duration-300 hover:scale-105">
+                <i class="fa fa-filter mr-2"></i> 分类筛选
+                <i class="fa fa-angle-down ml-1 transition-transform duration-300" id="category-toggle-icon"></i>
+            </button>
+
+            <!-- 排序下拉框 -->
+            <div class="w-full sm:w-auto">
+                <label for="sort-select" class="text-sm text-gray-600 mr-2">排序方式：</label>
+                <select id="sort-select" class="px-3 py-2 border border-gray-200 rounded-lg search-focus transition-all duration-300 hover:border-primary">
+                    <option value="newest">最新上架</option>
+                    <option value="popular">热门程度</option>
+                    <option value="title">书名排序</option>
+                </select>
+            </div>
+
+            <!-- 筛选结果计数 -->
+            <div class="text-sm text-gray-500" id="book-count-text">
+                共 <span class="font-semibold text-primary">28</span> 本图书
+            </div>
+        </div>
+    </div>
+
+    <!-- 分类侧边栏与图书列表 -->
+    <div class="flex flex-col md:flex-row gap-6">
+        <!-- 分类侧边栏 -->
+        <aside class="w-full md:w-64 shrink-0 animate-slideInLeft" style="animation-delay: 0.6s;" id="category-sidebar">
+            <div class="bg-white rounded-xl shadow-sm p-4 sticky top-24">
+                <!-- 分类列表标题 -->
+                <h3 class="font-bold text-lg mb-4 flex items-center">
+                    <i class="fa fa-list-ul text-primary mr-2"></i>图书分类
+                </h3>
+
+                <!-- 分类列表 -->
+                <ul class="space-y-1 mb-6 category-list">
+                    <li>
+                        <a href="category.html?category=all" class="flex items-center px-3 py-2.5 rounded-lg category-item category-active transition-colors duration-300" data-category="all">
+                            <span class="ml-1">全部图书</span>
+                            <span class="ml-auto bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">28</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="category.html?category=textbook" class="flex items-center px-3 py-2.5 rounded-lg category-item hover:bg-gray-50 transition-colors duration-300" data-category="textbook">
+                            <span class="ml-1">教材</span>
+                            <span class="ml-auto bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">8</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="category.html?category=novel" class="flex items-center px-3 py-2.5 rounded-lg category-item hover:bg-gray-50 transition-colors duration-300" data-category="novel">
+                            <span class="ml-1">小说</span>
+                            <span class="ml-auto bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">6</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="category.html?category=professional" class="flex items-center px-3 py-2.5 rounded-lg category-item hover:bg-gray-50 transition-colors duration-300" data-category="professional">
+                            <span class="ml-1">专业书籍</span>
+                            <span class="ml-auto bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">5</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="category.html?category=history" class="flex items-center px-3 py-2.5 rounded-lg category-item hover:bg-gray-50 transition-colors duration-300" data-category="history">
+                            <span class="ml-1">历史</span>
+                            <span class="ml-auto bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">3</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="category.html?category=philosophy" class="flex items-center px-3 py-2.5 rounded-lg category-item hover:bg-gray-50 transition-colors duration-300" data-category="philosophy">
+                            <span class="ml-1">哲学</span>
+                            <span class="ml-auto bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">2</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="category.html?category=popular-science" class="flex items-center px-3 py-2.5 rounded-lg category-item hover:bg-gray-50 transition-colors duration-300" data-category="popular-science">
+                            <span class="ml-1">科普</span>
+                            <span class="ml-auto bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">2</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="category.html?category=art" class="flex items-center px-3 py-2.5 rounded-lg category-item hover:bg-gray-50 transition-colors duration-300" data-category="art">
+                            <span class="ml-1">艺术</span>
+                            <span class="ml-auto bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">2</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- 热门标签云 -->
+                <div class="animate-fadeInUp" style="animation-delay: 0.8s;">
+                    <h3 class="font-bold text-lg mb-4 flex items-center">
+                        <i class="fa fa-tags text-primary mr-2"></i>热门标签
+                    </h3>
+                    <div class="flex flex-wrap gap,2">
+                        <span class="tag-item bg-blue-50 text-primary hover:bg-primary hover:text-white">计算机</span>
+                        <span class="tag-item bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white">文学</span>
+                        <span class="tag-item bg-green-50 text-green-600 hover:bg-green-600 hover:text-white">数学</span>
+                        <span class="tag-item bg-red-50 text-red-600 hover:bg-red-600 hover:text-white">科幻</span>
+                        <span class="tag-item bg-yellow-50 text-yellow-600 hover:bg-yellow-600 hover:text-white">心理学</span>
+                        <span class="tag-item bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white">编程</span>
+                        <span class="tag-item bg-pink-50 text-pink-600 hover:bg-pink-600 hover:text-white">历史</span>
+                        <span class="tag-item bg-teal-50 text-teal-600 hover:bg-teal-600 hover:text-white">艺术设计</span>
+                        <span class="tag-item bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white">经济学</span>
+                        <span class="tag-item bg-gray-50 text-gray-600 hover:bg-gray-600 hover:text-white">外语</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 图书列表区 -->
+        <div class="flex-1 animate-fadeInUp" style="animation-delay: 0.7s;">
+            <!-- 图书网格 -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="book-grid">
+                <!-- 图书卡片动态生成 -->
+            </div>
+
+            <!-- 空状态提示 -->
+            <div id="empty-state" class="hidden flex-col items-center justify-center py-16 text-center animate-fadeInUp">
+                <div class="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center mb-4 transition-all duration-300 hover:scale-110">
+                    <i class="fa fa-book text-gray-300 text-4xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-700 mb-2">暂无相关图书</h3>
+                <p class="text-gray-500 mb-4">换一个分类或搜索关键词试试吧</p>
+                <a href="category.html" class="btn-primary animate-hoverPulse">
+                    查看全部图书
+                </a>
+            </div>
+
+            <!-- 分页控件 -->
+            <div class="mt-8 flex justify-center" id="pagination">
+                <nav class="flex items-center space-x-1 animate-fadeInUp" style="animation-delay: 1.0s;">
+                    <a href="#" class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-all duration-300 hover:scale-110" aria-disabled="true">
+                        <i class="fa fa-chevron-left text-xs"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 flex items-center justify-center rounded-lg bg-primary text-white transition-all duration-300 hover:scale-110">1</a>
+                    <a href="#" class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-all duration-300 hover:scale-110">2</a>
+                    <a href="#" class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-all duration-300 hover:scale-110">3</a>
+                    <span class="w-10 h-10 flex items-center justify-center text-gray-400">...</span>
+                    <a href="#" class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-all duration-300 hover:scale-110">8</a>
+                    <a href="#" class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-all duration-300 hover:scale-110">
+                        <i class="fa fa-chevron-right text-xs"></i>
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- 页脚（与首页一致） -->
+<footer class="bg-gray-800 text-white py-8 mt-10 animate-fadeInUp" style="animation-delay: 1.2s;">
+    <div class="container mx-auto px-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="animate-fadeInUp" style="animation-delay: 1.3s;">
+                <div class="flex items-center space-x-2 mb-4">
+                    <i class="fa fa-book text-primary text-2xl"></i>
+                    <h3 class="text-lg font-bold">校园图书共享</h3>
+                </div>
+                <p class="text-gray-400 text-sm">连接校内有闲置图书的学生与有借阅需求的学生，实现图书资源循环利用，营造校园阅读氛围。</p>
+            </div>
+            <div class="animate-fadeInUp" style="animation-delay: 1.4s;">
+                <h4 class="font-bold mb-4">快速链接</h4>
+                <ul class="space-y-2 text-gray-400 text-sm">
+                    <li><a href="#" class="hover:text-white transition-colors duration-300 hover:translate-x-1">关于我们</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors duration-300 hover:translate-x-1">使用指南</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors duration-300 hover:translate-x-1">借阅规则</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors duration-300 hover:translate-x-1">常见问题</a></li>
+                </ul>
+            </div>
+            <div class="animate-fadeInUp" style="animation-delay: 1.5s;">
+                <h4 class="font-bold mb-4">联系我们</h4>
+                <ul class="space-y-2 text-gray-400 text-sm">
+                    <li class="flex items-center"><i class="fa fa-envelope-o mr-2"></i> support@bookshare.edu</li>
+                    <li class="flex items-center"><i class="fa fa-phone mr-2"></i> 123-4567-8910</li>
+                    <li class="flex items-center"><i class="fa fa-map-marker mr-2"></i> 图书馆302室</li>
+                </ul>
+                <div class="mt-4 flex space-x-4">
+                    <a href="#" class="text-gray-400 hover:text-white transition-all duration-300 transform hover:scale-125 hover:rotate-10"><i class="fa fa-weixin text-xl"></i></a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-all duration-300 transform hover:scale-125 hover:rotate-10"><i class="fa fa-weibo text-xl"></i></a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-all duration-300 transform hover:scale-125 hover:rotate-10"><i class="fa fa-qq text-xl"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="border-t border-gray-700 mt-6 pt-4 text-center text-gray-500 text-sm animate-fadeInUp" style="animation-delay: 1.6s;">
+            &copy; 2025 校园图书共享平台 版权所有
+        </div>
+    </div>
+</footer>
+
+<!-- 个人中心侧边栏 -->
+<div id="user-center" class="fixed inset-y-0 right-0 w-full md:w-80 bg-white shadow-xl z-50 transform translate-x-full transition-transform duration-500 ease-in-out">
+    <div class="h-full flex flex-col">
+        <div class="p-6 border-b">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">个人中心</h2>
+                <button id="close-user-center" class="text-gray-400 hover:text-gray-600 transition-colors hover:scale-110">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+
+            <div class="flex items-center animate-fadeInUp" style="animation-delay: 0.2s;">
+                <img src="https://picsum.photos/id/91/100/100" alt="用户头像" class="w-16 h-16 rounded-full object-cover mr-4 transition-all duration-300 hover:scale-110 hover:shadow-md">
+                <div>
+                    <p class="font-medium" id="user-name">李华</p>
+                    <p class="text-sm text-gray-600" id="user-info">软件学院 · 大二</p>
+                    <button class="text-primary text-sm hover:underline mt-1 transition-all duration-300 hover:scale-105" id="edit-profile-btn">
+                        编辑资料
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4">
+            <div class="mb-6">
+                <h3 class="text-sm font-semibold text-gray-500 uppercase mb-3">我的功能</h3>
+                <ul class="space-y-1">
+                    <li>
+                        <a href="#" class="flex items-center p-3 rounded-lg hover:bg-gray-100 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1">
+                            <i class="fa fa-book text-primary w-6"></i>
+                            <span class="ml-3">我的借阅</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center p-3 rounded-lg hover:bg-gray-100 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1">
+                            <i class="fa fa-bookmark text-primary w-6"></i>
+                            <span class="ml-3">我的图书</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center p-3 rounded-lg hover:bg-gray-100 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1">
+                            <i class="fa fa-heart text-primary w-6"></i>
+                            <span class="ml-3">我的收藏</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center p-3 rounded-lg hover:bg-gray-100 transition-all duration-300 hover:scale-[1.02] hover:translate-x-1">
+                            <i class="fa fa-plus-circle text-primary w-6"></i>
+                            <span class="ml-3">发布图书</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="mb-6">
+                <h3 class="text-sm font-semibold text-gray-500 uppercase mb-3">消息通知</h3>
+                <ul class="space-y-2">
+                    <li class="bg-blue-50 rounded-lg p-3 transition-all duration-300 hover:shadow-md animate-fadeInUp" style="animation-delay: 0.3s;">
+                        <div class="flex justify-between">
+                            <p class="font-medium text-sm">张明接受了你的借阅申请</p>
+                            <span class="text-xs text-gray-500">10分钟前</span>
+                        </div>
+                        <p class="text-xs text-gray-600 mt-1">《深入理解计算机系统》的借阅申请已被接受，请在约定时间前往取书</p>
+                    </li>
+                    <li class="bg-white rounded-lg p-3 border border-gray-100 transition-all duration-300 hover:shadow-md animate-fadeInUp" style="animation-delay: 0.4s;">
+                        <div class="flex justify-between">
+                            <p class="font-medium text-sm">新书上架提醒</p>
+                            <span class="text-xs text-gray-500">1小时前</span>
+                        </div>
+                        <p class="text-xs text-gray-600 mt-1">你关注的分类有3本新书上架，快去看看吧</p>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="p-4 border-t">
+            <button class="w-full flex items-center justify-center p-3 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all duration-300 hover:scale-[1.02]">
+                <i class="fa fa-cog mr-2"></i>
+                <span>设置</span>
+            </button>
+            <button class="w-full flex items-center justify-center p-3 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-all duration-300 hover:scale-[1.02] mt-3">
+                <i class="fa fa-sign-out mr-2"></i>
+                <span>退出登录</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑资料模态框 -->
+<div id="edit-profile-modal" class="edit-profile-modal">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" id="edit-modal-backdrop"></div>
+    <div class="modal-content">
+        <div class="p-6 border-b">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">编辑个人资料</h2>
+                <button id="close-edit-modal" class="text-gray-400 hover:text-gray-600 transition-colors hover:scale-110">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="flex items-center mb-8">
+                <div class="relative">
+                    <img src="https://picsum.photos/id/91/100/100" alt="用户头像" 
+                         class="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg">
+                    <button class="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center hover:bg-primary/90 transition-colors">
+                        <i class="fa fa-camera text-sm"></i>
+                    </button>
+                </div>
+                <div class="ml-6">
+                    <h3 class="text-lg font-semibold">更新您的个人资料</h3>
+                    <p class="text-gray-500 text-sm">完善资料可以让其他同学更好地了解您</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6">
+            <form id="profile-form" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="form-group">
+                        <label class="form-label">姓名</label>
+                        <input type="text" id="edit-name" class="form-input" value="李华" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">学号</label>
+                        <input type="text" id="edit-student-id" class="form-input" value="2023045678" required>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="form-group">
+                        <label class="form-label">学院</label>
+                        <select id="edit-college" class="form-select" required>
+                            <option value="软件学院" selected>软件学院</option>
+                            <option value="计算机学院">计算机学院</option>
+                            <option value="数学学院">数学学院</option>
+                            <option value="物理学院">物理学院</option>
+                            <option value="文学院">文学院</option>
+                            <option value="经济学院">经济学院</option>
+                            <option value="法学院">法学院</option>
+                            <option value="医学院">医学院</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">年级</label>
+                        <select id="edit-grade" class="form-select" required>
+                            <option value="大一">大一</option>
+                            <option value="大二" selected>大二</option>
+                            <option value="大三">大三</option>
+                            <option value="大四">大四</option>
+                            <option value="研究生">研究生</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="form-group">
+                        <label class="form-label">邮箱</label>
+                        <input type="email" id="edit-email" class="form-input" value="lihua@example.com" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">手机号</label>
+                        <input type="tel" id="edit-phone" class="form-input" value="13800138000" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">个人简介</label>
+                    <textarea id="edit-bio" class="form-textarea" rows="4" 
+                              placeholder="介绍一下你自己，让其他同学更好地了解你...">热爱阅读的程序员，喜欢分享知识，目前在校园图书共享平台已发布5本图书，借阅过12次</textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">阅读兴趣标签</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" class="mr-2 rounded text-primary focus:ring-primary" checked>
+                            <span>小说</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" class="mr-2 rounded text-primary focus:ring-primary" checked>
+                            <span>科技</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" class="mr-2 rounded text-primary focus:ring-primary">
+                            <span>历史</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" class="mr-2 rounded text-primary focus:ring-primary" checked>
+                            <span>计算机</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" class="mr-2 rounded text-primary focus:ring-primary">
+                            <span>经济</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" class="mr-2 rounded text-primary focus:ring-primary">
+                            <span>心理学</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" class="mr-2 rounded text-primary focus:ring-primary" checked>
+                            <span>文学</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" class="mr-2 rounded text-primary focus:ring-primary">
+                            <span>艺术</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">借阅偏好</label>
+                    <div class="space-y-3">
+                        <label class="flex items-center">
+                            <input type="radio" name="borrow-preference" class="mr-3 text-primary focus:ring-primary" checked>
+                            <span class="text-gray-700">允许其他同学随时借阅我的图书</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="borrow-preference" class="mr-3 text-primary focus:ring-primary">
+                            <span class="text-gray-700">借阅前需要我确认</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="borrow-preference" class="mr-3 text-primary focus:ring-primary">
+                            <span class="text-gray-700">仅限本学院同学借阅</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-4 pt-6 border-t">
+                    <button type="button" id="cancel-edit" class="px-6 py-2.5 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-all duration-300 hover:scale-105">
+                        取消
+                    </button>
+                    <button type="submit" class="px-6 py-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 transition-all duration-300 hover:scale-105 hover:shadow-lg">
+                        保存更改
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 背景遮罩 -->
+<div id="overlay" class="fixed inset-0 bg-black/30 z-40 hidden opacity-0 transition-opacity duration-500"></div>
+
+<!-- 回到顶部按钮 -->
+<button id="back-to-top" class="back-to-top" onclick="scrollToTop()">
+    <i class="fa fa-chevron-up"></i>
+</button>
+
+<!-- JavaScript 核心逻辑 -->
+<script>
+    // 图书数据源
+    const allBooks = [
+        // 教材类
+        { id: 11, title: "线性代数及其应用", author: "吉尔伯特·斯特朗", cover: "https://picsum.photos/id/42/300/400", category: "教材", status: "可借阅", isbn: "9787111407010", publishDate: "2023-01-15", hotScore: 86 },
+        { id: 12, title: "普通物理学", author: "程守洙", cover: "https://picsum.photos/id/190/300/400", category: "教材", status: "可借阅", isbn: "9787040439324", publishDate: "2023-02-20", hotScore: 78 },
+        { id: 13, title: "高等数学（上册）", author: "同济大学数学系", cover: "https://picsum.photos/id/175/300/400", category: "教材", status: "可借阅", isbn: "9787040532734", publishDate: "2023-03-10", hotScore: 92 },
+        { id: 14, title: "大学物理实验", author: "张三", cover: "https://picsum.photos/id/165/300/400", category: "教材", status: "已借出", isbn: "9787040498459", publishDate: "2023-04-05", hotScore: 65 },
+        { id: 15, title: "C语言程序设计", author: "谭浩强", cover: "https://picsum.photos/id/155/300/400", category: "教材", status: "可借阅", isbn: "9787115546981", publishDate: "2023-05-12", hotScore: 89 },
+        { id: 16, title: "概率论与数理统计", author: "茆诗松", cover: "https://picsum.photos/id/145/300/400", category: "教材", status: "可借阅", isbn: "9787040536944", publishDate: "2023-06-18", hotScore: 72 },
+        { id: 17, title: "大学英语（第三版）", author: "李荫华", cover: "https://picsum.photos/id/135/300/400", category: "教材", status: "可借阅", isbn: "9787544663961", publishDate: "2023-07-22", hotScore: 81 },
+        { id: 18, title: "数据结构", author: "严蔚敏", cover: "https://picsum.photos/id/125/300/400", category: "教材", status: "已借出", isbn: "9787111637814", publishDate: "2023-08-30", hotScore: 94 },
+
+        // 小说类
+        { id: 19, title: "百年孤独", author: "加西亚·马尔克斯", cover: "https://picsum.photos/id/20/300/400", category: "小说", status: "可借阅", isbn: "9787532755006", publishDate: "2023-01-05", hotScore: 98 },
+        { id: 20, title: "三体", author: "刘慈欣", cover: "https://picsum.photos/id/180/300/400", category: "小说", status: "可借阅", isbn: "9787536692930", publishDate: "2023-02-18", hotScore: 96 },
+        { id: 21, title: "活着", author: "余华", cover: "https://picsum.photos/id/240/300/400", category: "小说", status: "已借出", isbn: "9787506360243", publishDate: "2023-03-25", hotScore: 93 },
+        { id: 22, title: "解忧杂货店", author: "东野圭吾", cover: "https://picsum.photos/id/230/300/400", category: "小说", status: "可借阅", isbn: "9787544270878", publishDate: "2023-04-10", hotScore: 88 },
+        { id: 23, title: "追风筝的人", author: "卡勒德·胡赛尼", cover: "https://picsum.photos/id/220/300/400", category: "小说", status: "可借阅", isbn: "9787530208028", publishDate: "2023-05-15", hotScore: 85 },
+        { id: 24, title: "围城", author: "钱钟书", cover: "https://picsum.photos/id/210/300/400", category: "小说", status: "可借阅", isbn: "9787020102999", publishDate: "2023-06-20", hotScore: 82 },
+
+        // 专业书籍类
+        { id: 25, title: "深入理解计算机系统", author: "兰德尔·布莱恩特", cover: "https://picsum.photos/id/24/300/400", category: "专业书籍", status: "可借阅", isbn: "9787111544937", publishDate: "2023-01-20", hotScore: 95 },
+        { id: 26, title: "JavaScript高级程序设计", author: "尼古拉斯·泽卡斯", cover: "https://picsum.photos/id/21/300/400", category: "专业书籍", status: "可借阅", isbn: "9787115545381", publishDate: "2023-02-10", hotScore: 91 },
+        { id: 27, title: "算法导论", author: "托马斯·科尔曼", cover: "https://picsum.photos/id/119/300/400", category: "专业书籍", status: "可借阅", isbn: "9787111407010", publishDate: "2023-03-05", hotScore: 89 },
+        { id: 28, title: "数据库系统概念", author: "西尔伯沙茨", cover: "https://picsum.photos/id/109/300/400", category: "专业书籍", status: "已借出", isbn: "9787111544612", publishDate: "2023-04-18", hotScore: 84 },
+        { id: 29, title: "机器学习", author: "周志华", cover: "https://picsum.photos/id/99/300/400", category: "专业书籍", status: "可借阅", isbn: "9787111540937", publishDate: "2023-05-22", hotScore: 97 },
+
+        // 历史类
+        { id: 30, title: "人类简史", author: "尤瓦尔·赫拉利", cover: "https://picsum.photos/id/36/300/400", category: "历史", status: "已借出", isbn: "9787508647357", publishDate: "2023-01-25", hotScore: 94 },
+        { id: 31, title: "中国通史", author: "吕思勉", cover: "https://picsum.photos/id/46/300/400", category: "历史", status: "可借阅", isbn: "9787512660396", publishDate: "2023-03-12", hotScore: 87 },
+        { id: 32, title: "明朝那些事儿", author: "当年明月", cover: "https://picsum.photos/id/56/300/400", category: "历史", status: "可借阅", isbn: "9787505719688", publishDate: "2023-05-30", hotScore: 92 },
+
+        // 哲学类
+        { id: 33, title: "苏菲的世界", author: "乔斯坦·贾德", cover: "https://picsum.photos/id/66/300/400", category: "哲学", status: "可借阅", isbn: "9787544259840", publishDate: "2023-02-08", hotScore: 83 },
+        { id: 34, title: "西方哲学史", author: "伯特兰·罗素", cover: "https://picsum.photos/id/76/300/400", category: "哲学", status: "可借阅", isbn: "9787108029043", publishDate: "2023-04-25", hotScore: 79 },
+
+        // 科普类
+        { id: 35, title: "时间简史", author: "史蒂芬·霍金", cover: "https://picsum.photos/id/86/300/400", category: "科普", status: "可借阅", isbn: "9787535732309", publishDate: "2023-03-18", hotScore: 90 },
+        { id: 36, title: "万物简史", author: "比尔·布莱森", cover: "https://picsum.photos/id/96/300/400", category: "科普", status: "已借出", isbn: "9787535745242", publishDate: "2023-06-15", hotScore: 81 },
+
+        // 艺术类
+        { id: 37, title: "艺术的故事", author: "贡布里希", cover: "https://picsum.photos/id/106/300/400", category: "艺术", status: "可借阅", isbn: "9787508087291", publishDate: "2023-01-30", hotScore: 77 },
+        { id: 38, title: "设计心理学", author: "唐纳德·诺曼", cover: "https://picsum.photos/id/116/300/400", category: "艺术", status: "可借阅", isbn: "9787111558422", publishDate: "2023-05-08", hotScore: 84 }
+    ];
+
+    // 用户资料数据
+    let userProfile = {
+        name: "李华",
+        studentId: "2023045678",
+        college: "软件学院",
+        grade: "大二",
+        email: "lihua@example.com",
+        phone: "13800138000",
+        bio: "热爱阅读的程序员，喜欢分享知识，目前在校园图书共享平台已发布5本图书，借阅过12次",
+        readingInterests: ["小说", "科技", "计算机", "文学"],
+        borrowPreference: "allow-all"
+    };
+
+    // DOM元素获取
+    const mobileSearchBtn = document.getElementById('mobile-search-btn');
+    const mobileSearch = document.getElementById('mobile-search');
+    const searchInput = document.getElementById('search-input');
+    const searchIcon = document.getElementById('search-icon');
+    const searchResults = document.getElementById('search-results');
+    const userCenterBtn = document.getElementById('user-center-btn');
+    const userCenter = document.getElementById('user-center');
+    const closeUserCenter = document.getElementById('close-user-center');
+    const overlay = document.getElementById('overlay');
+    const backToTopBtn = document.getElementById('back-to-top');
+    const header = document.getElementById('main-header');
+    const categoryTitle = document.getElementById('category-title');
+    const bookCountText = document.getElementById('book-count-text');
+    const sortSelect = document.getElementById('sort-select');
+    const categoryItems = document.querySelectorAll('.category-item');
+    const mobileCategoryToggle = document.getElementById('mobile-category-toggle');
+    const categoryToggleIcon = document.getElementById('category-toggle-icon');
+    const categorySidebar = document.getElementById('category-sidebar');
+    const bookGrid = document.getElementById('book-grid');
+    const emptyState = document.getElementById('empty-state');
+    const tagItems = document.querySelectorAll('.tag-item');
+    
+    // 编辑资料相关DOM
+    const editProfileBtn = document.getElementById('edit-profile-btn');
+    const editProfileModal = document.getElementById('edit-profile-modal');
+    const closeEditModal = document.getElementById('close-edit-modal');
+    const cancelEdit = document.getElementById('cancel-edit');
+    const editModalBackdrop = document.getElementById('edit-modal-backdrop');
+    const profileForm = document.getElementById('profile-form');
+
+    // 1. 移动端搜索框切换
+    mobileSearchBtn.addEventListener('click', () => {
+        mobileSearch.classList.toggle('hidden');
+        if (!mobileSearch.classList.contains('hidden')) {
+            mobileSearch.querySelector('input').focus();
+        }
+    });
+
+    // 搜索框焦点样式
+    searchInput.addEventListener('focus', () => {
+        searchIcon.classList.add('text-primary');
+    });
+    searchInput.addEventListener('blur', () => {
+        if (!searchInput.value.trim()) {
+            searchIcon.classList.remove('text-primary');
+        }
+    });
+
+    // 2. 移动端分类侧边栏切换
+    mobileCategoryToggle.addEventListener('click', () => {
+        categorySidebar.classList.toggle('hidden');
+        categoryToggleIcon.classList.toggle('rotate-180');
+        if (!categorySidebar.classList.contains('hidden')) {
+            categorySidebar.classList.add('animate-slideInLeft');
+        }
+    });
+
+    // 3. 回到顶部功能
+    function scrollToTop() {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    }
+
+    // 滚动监听
+    window.addEventListener('scroll', () => {
+        // 回到顶部按钮显示/隐藏
+        if (window.pageYOffset > 300) {
+            backToTopBtn.classList.add('show');
+        } else {
+            backToTopBtn.classList.remove('show');
+        }
+
+        // 导航栏滚动效果
+        if (window.pageYOffset > 50) {
+            header.classList.add('shadow-md', 'py-2');
+            header.classList.remove('shadow-sm', 'py-3');
+        } else {
+            header.classList.remove('shadow-md', 'py-2');
+            header.classList.add('shadow-sm', 'py-3');
+        }
+    });
+
+    // 4. 分类筛选功能
+    function getQueryParam(name) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(name);
+    }
+
+    // 初始化分类选中状态
+    function initCategoryActive() {
+        const currentCategory = getQueryParam('category') || 'all';
+
+        // 分类标题映射
+        const categoryNames = {
+            'all': '全部图书分类',
+            'textbook': '教材类图书',
+            'novel': '小说类图书',
+            'professional': '专业书籍类图书',
+            'history': '历史类图书',
+            'philosophy': '哲学类图书',
+            'popular-science': '科普类图书',
+            'art': '艺术类图书'
+        };
+
+        // 更新标题
+        categoryTitle.innerHTML = `<i class="fa fa-th-large text-primary mr-2"></i>${categoryNames[currentCategory] || '全部图书分类'}`;
+
+        // 更新选中状态
+        categoryItems.forEach(item => {
+            if (item.dataset.category === currentCategory) {
+                item.classList.add('category-active');
+                item.classList.remove('hover:bg-gray-50');
+            } else {
+                item.classList.remove('category-active');
+                item.classList.add('hover:bg-gray-50');
+            }
+        });
+
+        // 筛选图书
+        filterBooks(currentCategory);
+    }
+
+    // 筛选图书
+    function filterBooks(category) {
+        let filteredBooks = allBooks;
+
+        if (category !== 'all') {
+            const categoryMap = {
+                'textbook': '教材',
+                'novel': '小说',
+                'professional': '专业书籍',
+                'history': '历史',
+                'philosophy': '哲学',
+                'popular-science': '科普',
+                'art': '艺术'
+            };
+
+            const targetCategory = categoryMap[category] || category;
+            filteredBooks = allBooks.filter(book => book.category === targetCategory);
+        }
+
+        // 应用排序
+        sortBooks(filteredBooks);
+    }
+
+    // 排序图书
+    function sortBooks(books) {
+        const sortType = sortSelect.value;
+        let sortedBooks = [...books];
+
+        switch (sortType) {
+            case 'newest':
+                sortedBooks.sort((a, b) => new Date(b.publishDate) - new Date(a.publishDate));
+                break;
+            case 'popular':
+                sortedBooks.sort((a, b) => b.hotScore - a.hotScore);
+                break;
+            case 'title':
+                sortedBooks.sort((a, b) => a.title.localeCompare(b.title));
+                break;
+        }
+
+        // 渲染图书
+        renderBooks(sortedBooks);
+    }
+
+    // 渲染图书卡片
+    function renderBooks(books) {
+        if (books.length === 0) {
+            bookGrid.innerHTML = '';
+            emptyState.classList.remove('hidden');
+            bookCountText.innerHTML = `共 <span class="font-semibold text-primary">0</span> 本图书`;
+            return;
+        }
+
+        emptyState.classList.add('hidden');
+        bookCountText.innerHTML = `共 <span class="font-semibold text-primary">${books.length}</span> 本图书`;
+
+        let bookHTML = '';
+        books.forEach((book, index) => {
+            // 检查收藏状态
+            const favorites = JSON.parse(localStorage.getItem('bookFavorites') || '[]');
+            const isFavorite = favorites.includes(book.id);
+
+            // 入场动画延迟
+            const delay = 0.05 * index;
+
+            bookHTML += `
+                <div class="bg-white rounded-xl overflow-hidden shadow-sm card-hover book-card relative" data-id="${book.id}" style="animation-delay: ${delay}s; opacity: 0; animation: fadeInUp 0.5s ease-out forwards;">
+                    <div class="relative overflow-hidden">
+                        <img src="${book.cover}" alt="${book.title}" class="w-full h-48 object-cover transition-transform duration-500 hover:scale-110">
+                        <span class="absolute top-2 right-2 bg-${book.status === '可借阅' ? 'secondary' : 'gray-500'} text-white text-xs px-2 py-1 rounded-full transform transition-transform duration-300 hover:scale-110">${book.status}</span>
+                        <!-- 快速借阅按钮 -->
+                        <button class="quick-borrow flex items-center ${book.status !== '可借阅' ? 'opacity-50 cursor-not-allowed' : ''}">
+                            <i class="fa fa-bookmark-o mr-1"></i> ${book.status === '可借阅' ? '快速借阅' : '已借出'}
+                        </button>
+                    </div>
+                    <div class="p-3">
+                        <h3 class="font-semibold text-sm truncate transition-all duration-300 hover:text-primary">${book.title}</h3>
+                        <p class="text-gray-500 text-xs mt-1">${book.author}</p>
+                        <div class="flex justify-between items-center mt-2">
+                            <span class="text-xs bg-blue-50 text-primary px-2 py-0.5 rounded-full transition-all duration-300 hover:bg-primary hover:text-white">${book.category}</span>
+                            <i class="fa ${isFavorite ? 'fa-heart text-red-500' : 'fa-heart-o text-gray-300 hover:text-red-500'} cursor-pointer transition-all duration-300 hover:scale-125 favorite-btn" data-id="${book.id}"></i>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        bookGrid.innerHTML = bookHTML;
+        bindBookEvents();
+    }
+
+    // 绑定图书相关事件
+    function bindBookEvents() {
+        // 图书卡片点击
+        document.querySelectorAll('.book-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('.favorite-btn') || e.target.closest('.quick-borrow')) {
+                    return;
+                }
+                const bookId = parseInt(card.dataset.id);
+                const book = allBooks.find(b => b.id === bookId);
+
+                // 点击反馈
+                card.classList.add('scale-[0.98]');
+                setTimeout(() => {
+                    card.classList.remove('scale-[0.98]');
+                    alert(`图书详情：\n书名：${book.title}\n作者：${book.author}\n分类：${book.category}\n状态：${book.status}\nISBN：${book.isbn}`);
+                }, 150);
+            });
+        });
+
+        // 快速借阅按钮
+        document.querySelectorAll('.quick-borrow').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const bookCard = btn.closest('.book-card');
+                const bookId = parseInt(bookCard.dataset.id);
+                const book = allBooks.find(b => b.id === bookId);
+
+                if (book.status === '可借阅') {
+                    btn.classList.add('scale-95');
+                    setTimeout(() => {
+                        btn.classList.remove('scale-95');
+                        alert(`成功申请借阅《${book.title}》\n请等待图书主人确认，确认后会通知你取书地点和时间`);
+                    }, 150);
+                } else {
+                    alert(`《${book.title}》当前已借出，可加入预约队列，图书归还后会第一时间通知你`);
+                }
+            });
+        });
+
+        // 收藏按钮
+        document.querySelectorAll('.favorite-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const bookId = parseInt(btn.dataset.id);
+                const book = allBooks.find(b => b.id === bookId);
+                let favorites = JSON.parse(localStorage.getItem('bookFavorites') || '[]');
+
+                // 收藏动画
+                btn.classList.add('scale-150');
+                setTimeout(() => {
+                    btn.classList.remove('scale-150');
+                }, 200);
+
+                if (favorites.includes(bookId)) {
+                    // 取消收藏
+                    favorites = favorites.filter(id => id !== bookId);
+                    btn.classList.remove('fa-heart', 'text-red-500');
+                    btn.classList.add('fa-heart-o', 'text-gray-300');
+                    alert(`已取消收藏《${book.title}》`);
+                } else {
+                    // 添加收藏
+                    favorites.push(bookId);
+                    btn.classList.remove('fa-heart-o', 'text-gray-300');
+                    btn.classList.add('fa-heart', 'text-red-500');
+                    alert(`已收藏《${book.title}》到我的收藏夹`);
+                }
+
+                localStorage.setItem('bookFavorites', JSON.stringify(favorites));
+            });
+        });
+    }
+
+    // 5. 搜索功能
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+
+        if (query.length < 1) {
+            searchResults.classList.add('hidden');
+            // 恢复当前分类
+            bookGrid.classList.add('opacity-50');
+            setTimeout(() => {
+                initCategoryActive();
+                bookGrid.classList.remove('opacity-50');
+            }, 300);
+            return;
+        }
+
+        // 搜索匹配
+        const results = allBooks.filter(book =>
+            book.title.toLowerCase().includes(query) ||
+            book.author.toLowerCase().includes(query) ||
+            book.isbn.includes(query) ||
+            book.category.toLowerCase().includes(query)
+        );
+
+        // 显示搜索结果
+        if (results.length === 0) {
+            searchResults.innerHTML = `
+                <div class="px-4 py-3 text-gray-500 text-sm">
+                    没有找到匹配的图书
+                </div>
+            `;
+            searchResults.classList.remove('hidden');
+
+            // 显示空状态
+            bookGrid.classList.add('opacity-50');
+            setTimeout(() => {
+                bookGrid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                bookCountText.innerHTML = `共 <span class="font-semibold text-primary">0</span> 本图书`;
+                bookGrid.classList.remove('opacity-50');
+            }, 300);
+            return;
+        }
+
+        // 生成搜索结果下拉框
+        let resultsHTML = '';
+        results.slice(0, 5).forEach(book => {
+            resultsHTML += `
+                <div class="px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer book-result" data-id="${book.id}">
+                    <div class="font-medium">${highlightMatch(book.title, query)}</div>
+                    <div class="text-sm text-gray-500">${book.author} · ${book.category}</div>
+                </div>
+            `;
+        });
+
+        searchResults.innerHTML = resultsHTML;
+        searchResults.classList.remove('hidden');
+
+        // 渲染搜索结果图书
+        bookGrid.classList.add('opacity-50');
+        setTimeout(() => {
+            renderBooks(results);
+            bookGrid.classList.remove('opacity-50');
+        }, 300);
+
+        // 搜索结果点击
+        document.querySelectorAll('.book-result').forEach(result => {
+            result.addEventListener('click', () => {
+                const bookId = parseInt(result.dataset.id);
+                const book = allBooks.find(b => b.id === bookId);
+
+                result.classList.add('bg-gray-100');
+                setTimeout(() => {
+                    result.classList.remove('bg-gray-100');
+                    alert(`图书详情：\n书名：${book.title}\n作者：${book.author}\n分类：${book.category}\n状态：${book.status}\nISBN：${book.isbn}`);
+                    searchResults.classList.add('hidden');
+                    searchInput.value = '';
+
+                    // 恢复当前分类
+                    bookGrid.classList.add('opacity-50');
+                    setTimeout(() => {
+                        initCategoryActive();
+                        bookGrid.classList.remove('opacity-50');
+                    }, 300);
+                }, 150);
+            });
+        });
+    });
+
+    // 点击页面其他区域关闭搜索结果
+    document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+            searchResults.classList.add('hidden');
+        }
+    });
+
+    // 高亮搜索匹配文本
+    function highlightMatch(text, query) {
+        const regex = new RegExp(`(${query})`, 'gi');
+        return text.replace(regex, '<span class="bg-yellow-200">$1</span>');
+    }
+
+    // 6. 排序下拉框变化
+    sortSelect.addEventListener('change', () => {
+        sortSelect.classList.add('scale-95');
+        setTimeout(() => {
+            sortSelect.classList.remove('scale-95');
+            const currentCategory = getQueryParam('category') || 'all';
+            filterBooks(currentCategory);
+        }, 150);
+    });
+
+    // 7. 个人中心开关
+    userCenterBtn.addEventListener('click', () => {
+        userCenter.classList.remove('translate-x-full');
+        overlay.classList.remove('hidden');
+        setTimeout(() => {
+            overlay.classList.add('opacity-100');
+        }, 10);
+        document.body.style.overflow = 'hidden';
+    });
+
+    function closeUserCenterSidebar() {
+        userCenter.classList.add('translate-x-full');
+        overlay.classList.remove('opacity-100');
+        setTimeout(() => {
+            overlay.classList.add('hidden');
+            document.body.style.overflow = '';
+        }, 300);
+    }
+
+    closeUserCenter.addEventListener('click', closeUserCenterSidebar);
+    overlay.addEventListener('click', closeUserCenterSidebar);
+
+    // 8. 编辑资料功能
+    editProfileBtn.addEventListener('click', () => {
+        // 关闭个人中心侧边栏
+        closeUserCenterSidebar();
+        
+        // 延迟显示编辑模态框，让侧边栏有动画时间关闭
+        setTimeout(() => {
+            // 填充表单数据
+            fillProfileForm();
+            
+            // 显示编辑模态框
+            editProfileModal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }, 300);
+    });
+
+    // 填充表单数据
+    function fillProfileForm() {
+        document.getElementById('edit-name').value = userProfile.name;
+        document.getElementById('edit-student-id').value = userProfile.studentId;
+        document.getElementById('edit-college').value = userProfile.college;
+        document.getElementById('edit-grade').value = userProfile.grade;
+        document.getElementById('edit-email').value = userProfile.email;
+        document.getElementById('edit-phone').value = userProfile.phone;
+        document.getElementById('edit-bio').value = userProfile.bio;
+        
+        // 设置阅读兴趣
+        const checkboxes = document.querySelectorAll('.checkbox-group input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            const label = checkbox.closest('.checkbox-label');
+            const interest = label.querySelector('span').textContent;
+            checkbox.checked = userProfile.readingInterests.includes(interest);
+        });
+        
+        // 设置借阅偏好
+        const radios = document.querySelectorAll('input[name="borrow-preference"]');
+        radios.forEach(radio => {
+            if (radio.nextElementSibling.textContent.includes('允许其他同学随时借阅')) {
+                radio.checked = userProfile.borrowPreference === 'allow-all';
+            } else if (radio.nextElementSibling.textContent.includes('借阅前需要我确认')) {
+                radio.checked = userProfile.borrowPreference === 'need-confirm';
+            } else if (radio.nextElementSibling.textContent.includes('仅限本学院同学')) {
+                radio.checked = userProfile.borrowPreference === 'same-college';
+            }
+        });
+    }
+
+    // 关闭编辑模态框
+    function closeEditProfileModal() {
+        editProfileModal.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+
+    closeEditModal.addEventListener('click', closeEditProfileModal);
+    cancelEdit.addEventListener('click', closeEditProfileModal);
+    editModalBackdrop.addEventListener('click', closeEditProfileModal);
+
+    // 表单提交处理
+    profileForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        // 收集表单数据
+        const formData = {
+            name: document.getElementById('edit-name').value,
+            studentId: document.getElementById('edit-student-id').value,
+            college: document.getElementById('edit-college').value,
+            grade: document.getElementById('edit-grade').value,
+            email: document.getElementById('edit-email').value,
+            phone: document.getElementById('edit-phone').value,
+            bio: document.getElementById('edit-bio').value,
+            readingInterests: [],
+            borrowPreference: ''
+        };
+        
+        // 收集阅读兴趣
+        const checkedInterests = document.querySelectorAll('.checkbox-group input[type="checkbox"]:checked');
+        checkedInterests.forEach(checkbox => {
+            const label = checkbox.closest('.checkbox-label');
+            formData.readingInterests.push(label.querySelector('span').textContent);
+        });
+        
+        // 收集借阅偏好
+        const selectedPreference = document.querySelector('input[name="borrow-preference"]:checked');
+        if (selectedPreference.nextElementSibling.textContent.includes('允许其他同学随时借阅')) {
+            formData.borrowPreference = 'allow-all';
+        } else if (selectedPreference.nextElementSibling.textContent.includes('借阅前需要我确认')) {
+            formData.borrowPreference = 'need-confirm';
+        } else if (selectedPreference.nextElementSibling.textContent.includes('仅限本学院同学')) {
+            formData.borrowPreference = 'same-college';
+        }
+        
+        // 更新用户资料
+        userProfile = formData;
+        
+        // 更新显示
+        document.getElementById('user-name').textContent = userProfile.name;
+        document.getElementById('user-info').textContent = `${userProfile.college} · ${userProfile.grade}`;
+        
+        // 保存到localStorage
+        localStorage.setItem('userProfile', JSON.stringify(userProfile));
+        
+        // 显示成功消息
+        showNotification('个人资料已成功更新！', 'success');
+        
+        // 关闭模态框
+        closeEditProfileModal();
+    });
+
+    // 9. 标签点击事件
+    tagItems.forEach(tag => {
+        tag.addEventListener('click', () => {
+            const tagText = tag.textContent.trim();
+            tag.classList.add('scale-95');
+            setTimeout(() => {
+                tag.classList.remove('scale-95');
+
+                // 筛选包含该标签的图书
+                const matchedBooks = allBooks.filter(book =>
+                    book.title.includes(tagText) ||
+                    book.category.includes(tagText) ||
+                    book.author.includes(tagText)
+                );
+
+                // 更新标题
+                categoryTitle.innerHTML = `<i class="fa fa-tags text-primary mr-2"></i>标签: ${tagText}`;
+
+                // 渲染匹配图书
+                bookGrid.classList.add('opacity-50');
+                setTimeout(() => {
+                    renderBooks(matchedBooks);
+                    bookGrid.classList.remove('opacity-50');
+                }, 300);
+            }, 150);
+        });
+    });
+
+    // 10. 分类链接点击事件
+    categoryItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const category = item.dataset.category;
+
+            item.classList.add('scale-95');
+            setTimeout(() => {
+                item.classList.remove('scale-95');
+                window.location.href = `category.html?category=${category}`;
+            }, 150);
+        });
+    });
+
+    // 显示通知
+    function showNotification(message, type = 'success') {
+        // 移除现有的通知
+        const existingNotification = document.querySelector('.notification');
+        if (existingNotification) {
+            existingNotification.remove();
+        }
+        
+        // 创建通知元素
+        const notification = document.createElement('div');
+        notification.className = `notification fixed top-4 right-4 z-[100] px-6 py-3 rounded-xl shadow-lg animate-fadeInUp ${
+            type === 'success' ? 'bg-green-500' : 
+            type === 'error' ? 'bg-red-500' : 'bg-blue-500'
+        } text-white`;
+        
+        notification.innerHTML = `
+            <div class="flex items-center">
+                <i class="fa ${type === 'success' ? 'fa-check-circle' : 'fa-info-circle'} mr-2"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // 3秒后自动移除
+        setTimeout(() => {
+            notification.classList.add('opacity-0', 'translate-y-2');
+            setTimeout(() => {
+                notification.remove();
+            }, 300);
+        }, 3000);
+    }
+
+    // 页面加载初始化
+    window.addEventListener('load', () => {
+        // 加载保存的用户资料
+        const savedProfile = localStorage.getItem('userProfile');
+        if (savedProfile) {
+            userProfile = JSON.parse(savedProfile);
+            document.getElementById('user-name').textContent = userProfile.name;
+            document.getElementById('user-info').textContent = `${userProfile.college} · ${userProfile.grade}`;
+        }
+        
+        initCategoryActive();
+
+        // 移动端默认隐藏分类侧边栏
+        if (window.innerWidth < 768) {
+            categorySidebar.classList.add('hidden');
+        }
+
+        // 窗口大小变化监听
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 768) {
+                categorySidebar.classList.remove('hidden');
+                categoryToggleIcon.classList.remove('rotate-180');
+            } else if (!categorySidebar.classList.contains('hidden')) {
+                categorySidebar.classList.add('hidden');
+                categoryToggleIcon.classList.add('rotate-180');
+            }
+        });
+    });
+</script>
+</body>
+</html>
