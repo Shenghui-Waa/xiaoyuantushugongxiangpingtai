@@ -1,762 +1,639 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>校园图书共享平台</title>
-  <!-- 引入外部资源 -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-  
-  <!-- Tailwind配置 -->
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            primary: '#4F46E5', // 主色调：靛蓝色，代表知识与信任
-            secondary: '#10B981', // 辅助色：绿色，代表共享与成长
-            accent: '#F59E0B', // 强调色：橙色，用于重要操作按钮
-          },
-          fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif'],
-          },
-        },
-      }
-    }
-  </script>
-  
-  <style type="text/tailwindcss">
-    @layer utilities {
-      .content-auto {
-        content-visibility: auto;
-      }
-      .card-hover {
-        @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
-      }
-      .text-balance {
-        text-wrap: balance;
-      }
-    }
-  </style>
-</head>
-
-<body class="bg-gray-50 font-sans text-gray-800">
-  <!-- 顶部导航栏 -->
-  <header class="sticky top-0 z-50 bg-white shadow-sm transition-all duration-300">
-    <div class="container mx-auto px-4 py-3 flex items-center justify-between">
-      <!-- 平台Logo -->
-      <div class="flex items-center space-x-2">
-        <i class="fa fa-book text-primary text-3xl"></i>
-        <h1 class="text-xl font-bold text-primary">校园图书共享</h1>
-      </div>
-      
-      <!-- 搜索框 - 桌面版 -->
-      <div class="hidden md:flex items-center flex-1 max-w-xl mx-6">
-        <div class="relative w-full">
-          <input type="text" id="search-input" placeholder="搜索书名、作者或ISBN..." 
-                 class="w-full pl-10 pr-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all">
-          <i class="fa fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-          
-          <!-- 搜索结果下拉框 -->
-          <div id="search-results" class="absolute left-0 right-0 mt-2 bg-white rounded-lg shadow-lg overflow-hidden hidden z-10 max-h-60 overflow-y-auto">
-            <!-- 搜索结果将通过JS动态生成 -->
-          </div>
-        </div>
-      </div>
-      
-      <!-- 导航菜单 -->
-      <nav class="flex items-center space-x-2 md:space-x-4">
-        <button class="md:hidden p-2 rounded-full hover:bg-gray-100 transition-colors" id="mobile-search-btn">
-          <i class="fa fa-search text-gray-600"></i>
-        </button>
-        <a href="#" class="hidden md:flex items-center px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors">
-          <i class="fa fa-home mr-1"></i>首页
-        </a>
-        <a href="#" class="hidden md:flex items-center px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors">
-          <i class="fa fa-th-list mr-1"></i>分类
-        </a>
-        <button id="user-center-btn" class="p-2 rounded-full hover:bg-gray-100 transition-colors relative">
-          <i class="fa fa-user text-gray-600"></i>
-          <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
-        </button>
-      </nav>
-    </div>
-    
-    <!-- 移动端搜索框 (默认隐藏) -->
-    <div id="mobile-search" class="md:hidden px-4 pb-3 hidden">
-      <div class="relative">
-        <input type="text" placeholder="搜索书名、作者或ISBN..." 
-               class="w-full pl-10 pr-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/50">
-        <i class="fa fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-      </div>
-    </div>
-  </header>
-
-  <main class="container mx-auto px-4 py-6">
-    <!-- 轮播图：热门共享图书 -->
-    <section class="mb-10 overflow-hidden rounded-xl shadow-md relative" id="banner">
-      <div class="flex transition-transform duration-500 ease-in-out" id="banner-track">
-        <!-- 轮播项1 -->
-        <div class="min-w-full relative">
-          <img src="https://picsum.photos/id/24/1200/400" alt="热门图书推荐" class="w-full h-56 md:h-72 object-cover">
-          <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-6 text-white">
-            <h2 class="text-2xl md:text-3xl font-bold mb-2">热门共享图书</h2>
-            <p class="max-w-xl mb-4 text-balance">超过1000本图书正在共享，让知识流动起来</p>
-            <button class="bg-accent hover:bg-amber-600 text-white px-4 py-2 rounded-lg transition-all duration-300 self-start flex items-center">
-              <i class="fa fa-explore mr-1"></i>立即探索
-            </button>
-          </div>
-        </div>
-        
-        <!-- 轮播项2 -->
-        <div class="min-w-full relative">
-          <img src="https://picsum.photos/id/20/1200/400" alt="新书上架" class="w-full h-56 md:h-72 object-cover">
-          <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-6 text-white">
-            <h2 class="text-2xl md:text-3xl font-bold mb-2">本周新书上架</h2>
-            <p class="max-w-xl mb-4 text-balance">50+本新书加入共享平台，快来抢先借阅</p>
-            <button class="bg-accent hover:bg-amber-600 text-white px-4 py-2 rounded-lg transition-all duration-300 self-start flex items-center">
-              <i class="fa fa-fire mr-1"></i>查看热门
-            </button>
-          </div>
-        </div>
-        
-        <!-- 轮播项3 -->
-        <div class="min-w-full relative">
-          <img src="https://picsum.photos/id/42/1200/400" alt="阅读活动" class="w-full h-56 md:h-72 object-cover">
-          <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-6 text-white">
-            <h2 class="text-2xl md:text-3xl font-bold mb-2">校园阅读节</h2>
-            <p class="max-w-xl mb-4 text-balance">参与阅读活动，分享读书笔记，赢取奖品</p>
-            <button class="bg-accent hover:bg-amber-600 text-white px-4 py-2 rounded-lg transition-all duration-300 self-start flex items-center">
-              <i class="fa fa-trophy mr-1"></i>了解详情
-            </button>
-          </div>
-        </div>
-      </div>
-      
-      <!-- 轮播控制按钮 -->
-      <button id="prev-slide" class="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/30 backdrop-blur-sm text-white flex items-center justify-center hover:bg-white/50 transition-colors">
-        <i class="fa fa-chevron-left"></i>
-      </button>
-      <button id="next-slide" class="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/30 backdrop-blur-sm text-white flex items-center justify-center hover:bg-white/50 transition-colors">
-        <i class="fa fa-chevron-right"></i>
-      </button>
-      
-      <!-- 轮播指示器 -->
-      <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
-        <button class="w-3 h-3 rounded-full bg-white opacity-100 transition-opacity" data-index="0"></button>
-        <button class="w-3 h-3 rounded-full bg-white opacity-50 transition-opacity" data-index="1"></button>
-        <button class="w-3 h-3 rounded-full bg-white opacity-50 transition-opacity" data-index="2"></button>
-      </div>
-    </section>
-
-    <!-- 图书分类导航 -->
-    <section class="mb-8">
-      <h2 class="text-xl font-bold mb-4 flex items-center">
-        <i class="fa fa-th-large text-primary mr-2"></i>图书分类
-      </h2>
-      <div class="flex overflow-x-auto pb-2 space-x-3 scrollbar-hide">
-        <button class="whitespace-nowrap px-4 py-2 bg-primary text-white rounded-full shadow-sm">全部图书</button>
-        <button class="whitespace-nowrap px-4 py-2 bg-white text-gray-700 rounded-full shadow-sm hover:bg-gray-100 transition-colors">教材</button>
-        <button class="whitespace-nowrap px-4 py-2 bg-white text-gray-700 rounded-full shadow-sm hover:bg-gray-100 transition-colors">小说</button>
-        <button class="whitespace-nowrap px-4 py-2 bg-white text-gray-700 rounded-full shadow-sm hover:bg-gray-100 transition-colors">专业书籍</button>
-        <button class="whitespace-nowrap px-4 py-2 bg-white text-gray-700 rounded-full shadow-sm hover:bg-gray-100 transition-colors">历史</button>
-        <button class="whitespace-nowrap px-4 py-2 bg-white text-gray-700 rounded-full shadow-sm hover:bg-gray-100 transition-colors">哲学</button>
-        <button class="whitespace-nowrap px-4 py-2 bg-white text-gray-700 rounded-full shadow-sm hover:bg-gray-100 transition-colors">科普</button>
-        <button class="whitespace-nowrap px-4 py-2 bg-white text-gray-700 rounded-full shadow-sm hover:bg-gray-100 transition-colors">艺术</button>
-      </div>
-    </section>
-
-    <!-- 推荐图书区 -->
-    <section class="mb-10">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-bold flex items-center">
-          <i class="fa fa-star text-accent mr-2"></i>推荐图书
-        </h2>
-        <a href="#" class="text-primary hover:underline text-sm flex items-center">
-          查看更多 <i class="fa fa-angle-right ml-1"></i>
-        </a>
-      </div>
-      
-      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        <!-- 图书卡片1 -->
-        <div class="bg-white rounded-xl overflow-hidden shadow-sm card-hover book-card" data-id="1">
-          <div class="relative">
-            <img src="https://picsum.photos/id/24/300/400" alt="深入理解计算机系统" class="w-full h-48 object-cover">
-            <span class="absolute top-2 right-2 bg-secondary text-white text-xs px-2 py-1 rounded-full">可借阅</span>
-          </div>
-          <div class="p-3">
-            <h3 class="font-semibold text-sm truncate">深入理解计算机系统</h3>
-            <p class="text-gray-500 text-xs mt-1">兰德尔·布莱恩特</p>
-            <div class="flex justify-between items-center mt-2">
-              <span class="text-xs bg-blue-50 text-primary px-2 py-0.5 rounded-full">专业书籍</span>
-              <i class="fa fa-heart-o text-gray-300 hover:text-red-500 cursor-pointer transition-colors"></i>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 图书卡片2 -->
-        <div class="bg-white rounded-xl overflow-hidden shadow-sm card-hover book-card" data-id="2">
-          <div class="relative">
-            <img src="https://picsum.photos/id/20/300/400" alt="百年孤独" class="w-full h-48 object-cover">
-            <span class="absolute top-2 right-2 bg-secondary text-white text-xs px-2 py-1 rounded-full">可借阅</span>
-          </div>
-          <div class="p-3">
-            <h3 class="font-semibold text-sm truncate">百年孤独</h3>
-            <p class="text-gray-500 text-xs mt-1">加西亚·马尔克斯</p>
-            <div class="flex justify-between items-center mt-2">
-              <span class="text-xs bg-blue-50 text-primary px-2 py-0.5 rounded-full">小说</span>
-              <i class="fa fa-heart text-red-500 cursor-pointer transition-colors"></i>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 图书卡片3 -->
-        <div class="bg-white rounded-xl overflow-hidden shadow-sm card-hover book-card" data-id="3">
-          <div class="relative">
-            <img src="https://picsum.photos/id/42/300/400" alt="线性代数及其应用" class="w-full h-48 object-cover">
-            <span class="absolute top-2 right-2 bg-secondary text-white text-xs px-2 py-1 rounded-full">可借阅</span>
-          </div>
-          <div class="p-3">
-            <h3 class="font-semibold text-sm truncate">线性代数及其应用</h3>
-            <p class="text-gray-500 text-xs mt-1">吉尔伯特·斯特朗</p>
-            <div class="flex justify-between items-center mt-2">
-              <span class="text-xs bg-blue-50 text-primary px-2 py-0.5 rounded-full">教材</span>
-              <i class="fa fa-heart-o text-gray-300 hover:text-red-500 cursor-pointer transition-colors"></i>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 图书卡片4 -->
-        <div class="bg-white rounded-xl overflow-hidden shadow-sm card-hover book-card" data-id="4">
-          <div class="relative">
-            <img src="https://picsum.photos/id/36/300/400" alt="人类简史" class="w-full h-48 object-cover">
-            <span class="absolute top-2 right-2 bg-gray-500 text-white text-xs px-2 py-1 rounded-full">已借出</span>
-          </div>
-          <div class="p-3">
-            <h3 class="font-semibold text-sm truncate">人类简史</h3>
-            <p class="text-gray-500 text-xs mt-1">尤瓦尔·赫拉利</p>
-            <div class="flex justify-between items-center mt-2">
-              <span class="text-xs bg-blue-50 text-primary px-2 py-0.5 rounded-full">历史</span>
-              <i class="fa fa-heart-o text-gray-300 hover:text-red-500 cursor-pointer transition-colors"></i>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 图书卡片5 -->
-        <div class="bg-white rounded-xl overflow-hidden shadow-sm card-hover book-card" data-id="5">
-          <div class="relative">
-            <img src="https://picsum.photos/id/21/300/400" alt="JavaScript高级程序设计" class="w-full h-48 object-cover">
-            <span class="absolute top-2 right-2 bg-secondary text-white text-xs px-2 py-1 rounded-full">可借阅</span>
-          </div>
-          <div class="p-3">
-            <h3 class="font-semibold text-sm truncate">JavaScript高级程序设计</h3>
-            <p class="text-gray-500 text-xs mt-1">尼古拉斯·泽卡斯</p>
-            <div class="flex justify-between items-center mt-2">
-              <span class="text-xs bg-blue-50 text-primary px-2 py-0.5 rounded-full">专业书籍</span>
-              <i class="fa fa-heart-o text-gray-300 hover:text-red-500 cursor-pointer transition-colors"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 最新上架区 -->
-    <section class="mb-10">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-bold flex items-center">
-          <i class="fa fa-clock-o text-primary mr-2"></i>最新上架
-        </h2>
-        <a href="#" class="text-primary hover:underline text-sm flex items-center">
-          查看更多 <i class="fa fa-angle-right ml-1"></i>
-        </a>
-      </div>
-      
-      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        <!-- 图书卡片6 -->
-        <div class="bg-white rounded-xl overflow-hidden shadow-sm card-hover book-card" data-id="6">
-          <div class="relative">
-            <img src="https://picsum.photos/id/180/300/400" alt="三体" class="w-full h-48 object-cover">
-            <span class="absolute top-2 right-2 bg-secondary text-white text-xs px-2 py-1 rounded-full">可借阅</span>
-            <span class="absolute top-2 left-2 bg-accent text-white text-xs px-2 py-1 rounded-full">新上架</span>
-          </div>
-          <div class="p-3">
-            <h3 class="font-semibold text-sm truncate">三体</h3>
-            <p class="text-gray-500 text-xs mt-1">刘慈欣</p>
-            <div class="flex justify-between items-center mt-2">
-              <span class="text-xs bg-blue-50 text-primary px-2 py-0.5 rounded-full">小说</span>
-              <i class="fa fa-heart-o text-gray-300 hover:text-red-500 cursor-pointer transition-colors"></i>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 图书卡片7 -->
-        <div class="bg-white rounded-xl overflow-hidden shadow-sm card-hover book-card" data-id="7">
-          <div class="relative">
-            <img src="https://picsum.photos/id/119/300/400" alt="算法导论" class="w-full h-48 object-cover">
-            <span class="absolute top-2 right-2 bg-secondary text-white text-xs px-2 py-1 rounded-full">可借阅</span>
-            <span class="absolute top-2 left-2 bg-accent text-white text-xs px-2 py-1 rounded-full">新上架</span>
-          </div>
-          <div class="p-3">
-            <h3 class="font-semibold text-sm truncate">算法导论</h3>
-            <p class="text-gray-500 text-xs mt-1">托马斯·科尔曼</p>
-            <div class="flex justify-between items-center mt-2">
-              <span class="text-xs bg-blue-50 text-primary px-2 py-0.5 rounded-full">专业书籍</span>
-              <i class="fa fa-heart-o text-gray-300 hover:text-red-500 cursor-pointer transition-colors"></i>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 图书卡片8 -->
-        <div class="bg-white rounded-xl overflow-hidden shadow-sm card-hover book-card" data-id="8">
-          <div class="relative">
-            <img src="https://picsum.photos/id/169/300/400" alt="社会心理学" class="w-full h-48 object-cover">
-            <span class="absolute top-2 right-2 bg-secondary text-white text-xs px-2 py-1 rounded-full">可借阅</span>
-            <span class="absolute top-2 left-2 bg-accent text-white text-xs px-2 py-1 rounded-full">新上架</span>
-          </div>
-          <div class="p-3">
-            <h3 class="font-semibold text-sm truncate">社会心理学</h3>
-            <p class="text-gray-500 text-xs mt-1">戴维·迈尔斯</p>
-            <div class="flex justify-between items-center mt-2">
-              <span class="text-xs bg-blue-50 text-primary px-2 py-0.5 rounded-full">社科</span>
-              <i class="fa fa-heart text-red-500 cursor-pointer transition-colors"></i>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 图书卡片9 -->
-        <div class="bg-white rounded-xl overflow-hidden shadow-sm card-hover book-card" data-id="9">
-          <div class="relative">
-            <img src="https://picsum.photos/id/190/300/400" alt="普通物理学" class="w-full h-48 object-cover">
-            <span class="absolute top-2 right-2 bg-secondary text-white text-xs px-2 py-1 rounded-full">可借阅</span>
-            <span class="absolute top-2 left-2 bg-accent text-white text-xs px-2 py-1 rounded-full">新上架</span>
-          </div>
-          <div class="p-3">
-            <h3 class="font-semibold text-sm truncate">普通物理学</h3>
-            <p class="text-gray-500 text-xs mt-1">程守洙</p>
-            <div class="flex justify-between items-center mt-2">
-              <span class="text-xs bg-blue-50 text-primary px-2 py-0.5 rounded-full">教材</span>
-              <i class="fa fa-heart-o text-gray-300 hover:text-red-500 cursor-pointer transition-colors"></i>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 图书卡片10 -->
-        <div class="bg-white rounded-xl overflow-hidden shadow-sm card-hover book-card" data-id="10">
-          <div class="relative">
-            <img src="https://picsum.photos/id/240/300/400" alt="活着" class="w-full h-48 object-cover">
-            <span class="absolute top-2 right-2 bg-gray-500 text-white text-xs px-2 py-1 rounded-full">已借出</span>
-            <span class="absolute top-2 left-2 bg-accent text-white text-xs px-2 py-1 rounded-full">新上架</span>
-          </div>
-          <div class="p-3">
-            <h3 class="font-semibold text-sm truncate">活着</h3>
-            <p class="text-gray-500 text-xs mt-1">余华</p>
-            <div class="flex justify-between items-center mt-2">
-              <span class="text-xs bg-blue-50 text-primary px-2 py-0.5 rounded-full">小说</span>
-              <i class="fa fa-heart-o text-gray-300 hover:text-red-500 cursor-pointer transition-colors"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 平台数据统计 -->
-    <section class="mb-10 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl p-6">
-      <h2 class="text-xl font-bold mb-6 text-center">平台数据</h2>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-        <div class="bg-white/70 backdrop-blur-sm rounded-lg p-4 shadow-sm">
-          <div class="text-3xl font-bold text-primary mb-1" id="book-count">1,286</div>
-          <div class="text-sm text-gray-600">共享图书</div>
-        </div>
-        <div class="bg-white/70 backdrop-blur-sm rounded-lg p-4 shadow-sm">
-          <div class="text-3xl font-bold text-primary mb-1" id="user-count">528</div>
-          <div class="text-sm text-gray-600">注册用户</div>
-        </div>
-        <div class="bg-white/70 backdrop-blur-sm rounded-lg p-4 shadow-sm">
-          <div class="text-3xl font-bold text-primary mb-1" id="borrow-count">3,742</div>
-          <div class="text-sm text-gray-600">借阅次数</div>
-        </div>
-        <div class="bg-white/70 backdrop-blur-sm rounded-lg p-4 shadow-sm">
-          <div class="text-3xl font-bold text-primary mb-1" id="category-count">12</div>
-          <div class="text-sm text-gray-600">图书分类</div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <!-- 页脚 -->
-  <footer class="bg-gray-800 text-white py-8">
-    <div class="container mx-auto px-4">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div>
-          <div class="flex items-center space-x-2 mb-4">
-            <i class="fa fa-book text-primary text-2xl"></i>
-            <h3 class="text-lg font-bold">校园图书共享</h3>
-          </div>
-          <p class="text-gray-400 text-sm">连接校内有闲置图书的学生与有借阅需求的学生，实现图书资源循环利用，营造校园阅读氛围。</p>
-        </div>
-        <div>
-          <h4 class="font-bold mb-4">快速链接</h4>
-          <ul class="space-y-2 text-gray-400 text-sm">
-            <li><a href="#" class="hover:text-white transition-colors">关于我们</a></li>
-            <li><a href="#" class="hover:text-white transition-colors">使用指南</a></li>
-            <li><a href="#" class="hover:text-white transition-colors">借阅规则</a></li>
-            <li><a href="#" class="hover:text-white transition-colors">常见问题</a></li>
-          </ul>
-        </div>
-        <div>
-          <h4 class="font-bold mb-4">联系我们</h4>
-          <ul class="space-y-2 text-gray-400 text-sm">
-            <li class="flex items-center"><i class="fa fa-envelope-o mr-2"></i> support@bookshare.edu</li>
-            <li class="flex items-center"><i class="fa fa-phone mr-2"></i> 123-4567-8910</li>
-            <li class="flex items-center"><i class="fa fa-map-marker mr-2"></i> 图书馆302室</li>
-          </ul>
-          <div class="mt-4 flex space-x-4">
-            <a href="#" class="text-gray-400 hover:text-white transition-colors"><i class="fa fa-weixin text-xl"></i></a>
-            <a href="#" class="text-gray-400 hover:text-white transition-colors"><i class="fa fa-weibo text-xl"></i></a>
-            <a href="#" class="text-gray-400 hover:text-white transition-colors"><i class="fa fa-qq text-xl"></i></a>
-          </div>
-        </div>
-      </div>
-      <div class="border-t border-gray-700 mt-6 pt-4 text-center text-gray-500 text-sm">
-        &copy; 2023 校园图书共享平台 版权所有
-      </div>
-    </div>
-  </footer>
-
-  <!-- 个人中心侧边栏 (默认隐藏) -->
-  <div id="user-center" class="fixed inset-y-0 right-0 w-full md:w-80 bg-white shadow-xl z-50 transform translate-x-full transition-transform duration-300">
-    <div class="h-full flex flex-col">
-      <div class="p-6 border-b">
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-xl font-bold">个人中心</h2>
-          <button id="close-user-center" class="text-gray-400 hover:text-gray-600 transition-colors">
-            <i class="fa fa-times"></i>
-          </button>
-        </div>
-        
-        <div class="flex items-center">
-          <img src="https://picsum.photos/id/91/100/100" alt="用户头像" class="w-16 h-16 rounded-full object-cover mr-4">
-          <div>
-            <p class="font-medium">李华</p>
-            <p class="text-sm text-gray-600">软件学院 · 大二</p>
-            <button class="text-primary text-sm hover:underline mt-1">编辑资料</button>
-          </div>
-        </div>
-      </div>
-      
-      <div class="flex-1 overflow-y-auto p-4">
-        <div class="mb-6">
-          <h3 class="text-sm font-semibold text-gray-500 uppercase mb-3">我的功能</h3>
-          <ul class="space-y-1">
-            <li>
-              <a href="#" class="flex items-center p-3 rounded-lg hover:bg-gray-100 transition-colors">
-                <i class="fa fa-book text-primary w-6"></i>
-                <span class="ml-3">我的借阅</span>
-              </a>
-            </li>
-            <li>
-              <a href="#" class="flex items-center p-3 rounded-lg hover:bg-gray-100 transition-colors">
-                <i class="fa fa-bookmark text-primary w-6"></i>
-                <span class="ml-3">我的图书</span>
-              </a>
-            </li>
-            <li>
-              <a href="#" class="flex items-center p-3 rounded-lg hover:bg-gray-100 transition-colors">
-                <i class="fa fa-heart text-primary w-6"></i>
-                <span class="ml-3">我的收藏</span>
-              </a>
-            </li>
-            <li>
-              <a href="#" class="flex items-center p-3 rounded-lg hover:bg-gray-100 transition-colors">
-                <i class="fa fa-plus-circle text-primary w-6"></i>
-                <span class="ml-3">发布图书</span>
-              </a>
-            </li>
-          </ul>
-        </div>
-        
-        <div class="mb-6">
-          <h3 class="text-sm font-semibold text-gray-500 uppercase mb-3">消息通知</h3>
-          <ul class="space-y-2">
-            <li class="bg-blue-50 rounded-lg p-3">
-              <div class="flex justify-between">
-                <p class="font-medium text-sm">张明接受了你的借阅申请</p>
-                <span class="text-xs text-gray-500">10分钟前</span>
-              </div>
-              <p class="text-xs text-gray-600 mt-1">《深入理解计算机系统》的借阅申请已被接受，请在约定时间前往取书</p>
-            </li>
-            <li class="bg-white rounded-lg p-3 border border-gray-100">
-              <div class="flex justify-between">
-                <p class="font-medium text-sm">新书上架提醒</p>
-                <span class="text-xs text-gray-500">1小时前</span>
-              </div>
-              <p class="text-xs text-gray-600 mt-1">你关注的分类有3本新书上架，快去看看吧</p>
-            </li>
-          </ul>
-        </div>
-      </div>
-      
-      <div class="p-4 border-t">
-        <button class="w-full flex items-center justify-center p-3 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors">
-          <i class="fa fa-cog mr-2"></i>
-          <span>设置</span>
-        </button>
-        <button class="w-full flex items-center justify-center p-3 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors mt-3">
-          <i class="fa fa-sign-out mr-2"></i>
-          <span>退出登录</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 背景遮罩 (用于个人中心打开时) -->
-  <div id="overlay" class="fixed inset-0 bg-black/30 z-40 hidden opacity-0 transition-opacity duration-300"></div>
-
-  <!-- JavaScript -->
-  <script>
-    // 图书数据
-    const books = [
-      {
-        id: 1,
-        title: "深入理解计算机系统",
-        author: "兰德尔·布莱恩特",
-        cover: "https://picsum.photos/id/24/400/500",
-        category: "专业书籍",
-        status: "可借阅",
-        isbn: "9787111544937"
-      },
-      {
-        id: 2,
-        title: "百年孤独",
-        author: "加西亚·马尔克斯",
-        cover: "https://picsum.photos/id/20/400/500",
-        category: "小说",
-        status: "可借阅",
-        isbn: "9787532755006"
-      },
-      {
-        id: 3,
-        title: "线性代数及其应用",
-        author: "吉尔伯特·斯特朗",
-        cover: "https://picsum.photos/id/42/400/500",
-        category: "教材",
-        status: "可借阅",
-        isbn: "9787111407010"
-      },
-      {
-        id: 4,
-        title: "人类简史",
-        author: "尤瓦尔·赫拉利",
-        cover: "https://picsum.photos/id/36/400/500",
-        category: "历史",
-        status: "已借出",
-        isbn: "9787508647357"
-      },
-      {
-        id: 5,
-        title: "JavaScript高级程序设计",
-        author: "尼古拉斯·泽卡斯",
-        cover: "https://picsum.photos/id/21/400/500",
-        category: "专业书籍",
-        status: "可借阅",
-        isbn: "9787115545381"
-      }
-    ];
-
-    // DOM元素
-    const mobileSearchBtn = document.getElementById('mobile-search-btn');
-    const mobileSearch = document.getElementById('mobile-search');
-    const searchInput = document.getElementById('search-input');
-    const searchResults = document.getElementById('search-results');
-    const bannerTrack = document.getElementById('banner-track');
-    const prevSlide = document.getElementById('prev-slide');
-    const nextSlide = document.getElementById('next-slide');
-    const slideIndicators = document.querySelectorAll('#banner .absolute.bottom-4 button');
-    const userCenterBtn = document.getElementById('user-center-btn');
-    const userCenter = document.getElementById('user-center');
-    const closeUserCenter = document.getElementById('close-user-center');
-    const overlay = document.getElementById('overlay');
-
-    // 当前轮播索引
-    let currentSlide = 0;
-    const totalSlides = 3;
-
-    // 移动端搜索框切换
-    mobileSearchBtn.addEventListener('click', () => {
-      mobileSearch.classList.toggle('hidden');
-    });
-
-    // 轮播图控制
-    function goToSlide(index) {
-      currentSlide = index;
-      bannerTrack.style.transform = `translateX(-${currentSlide * 100}%)`;
-      
-      // 更新指示器状态
-      slideIndicators.forEach((indicator, i) => {
-        if (i === currentSlide) {
-          indicator.classList.add('opacity-100');
-          indicator.classList.remove('opacity-50');
-        } else {
-          indicator.classList.add('opacity-50');
-          indicator.classList.remove('opacity-100');
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园图书共享平台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
         }
-      });
-    }
 
-    prevSlide.addEventListener('click', () => {
-      currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
-      goToSlide(currentSlide);
-    });
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
 
-    nextSlide.addEventListener('click', () => {
-      currentSlide = (currentSlide + 1) % totalSlides;
-      goToSlide(currentSlide);
-    });
+        /* 顶部导航栏 */
+        .header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background-color: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 0.8rem 1rem;
+            z-index: 100;
+        }
 
-    slideIndicators.forEach(indicator => {
-      indicator.addEventListener('click', () => {
-        goToSlide(parseInt(indicator.dataset.index));
-      });
-    });
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
 
-    // 自动轮播
-    let slideInterval = setInterval(() => {
-      currentSlide = (currentSlide + 1) % totalSlides;
-      goToSlide(currentSlide);
-    }, 5000);
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
 
-    // 鼠标悬停时暂停轮播
-    document.getElementById('banner').addEventListener('mouseenter', () => {
-      clearInterval(slideInterval);
-    });
+        .logo img {
+            width: 40px;
+            height: 40px;
+        }
 
-    // 鼠标离开时恢复轮播
-    document.getElementById('banner').addEventListener('mouseleave', () => {
-      slideInterval = setInterval(() => {
-        currentSlide = (currentSlide + 1) % totalSlides;
-        goToSlide(currentSlide);
-      }, 5000);
-    });
+        .logo-text {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #2e65cc;
+        }
 
-    // 搜索功能
-    searchInput.addEventListener('input', (e) => {
-      const query = e.target.value.toLowerCase().trim();
-      
-      if (query.length < 1) {
-        searchResults.classList.add('hidden');
-        return;
-      }
-      
-      // 搜索匹配
-      const results = books.filter(book => 
-        book.title.toLowerCase().includes(query) || 
-        book.author.toLowerCase().includes(query) ||
-        book.isbn.includes(query)
-      );
-      
-      if (results.length === 0) {
-        searchResults.innerHTML = `
-          <div class="px-4 py-3 text-gray-500 text-sm">
-            没有找到匹配的图书
-          </div>
-        `;
-        searchResults.classList.remove('hidden');
-        return;
-      }
-      
-      // 生成搜索结果HTML
-      let resultsHTML = '';
-      results.forEach(book => {
-        resultsHTML += `
-          <div class="px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer book-result" data-id="${book.id}">
-            <div class="font-medium">${highlightMatch(book.title, query)}</div>
-            <div class="text-sm text-gray-500">${book.author}</div>
-          </div>
-        `;
-      });
-      
-      searchResults.innerHTML = resultsHTML;
-      searchResults.classList.remove('hidden');
-      
-      // 为搜索结果添加点击事件
-      document.querySelectorAll('.book-result').forEach(result => {
-        result.addEventListener('click', () => {
-          // 在实际应用中，这里会跳转到图书详情页
-          alert('查看图书详情: ' + books.find(b => b.id === parseInt(result.dataset.id)).title);
-          searchResults.classList.add('hidden');
-          searchInput.value = '';
+        .search-box {
+            flex: 1;
+            max-width: 500px;
+            margin: 0 1rem;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.6rem 1rem 0.6rem 2.5rem;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            outline: none;
+            font-size: 0.9rem;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.8rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+        }
+
+        .search-suggest {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-top: 0.5rem;
+            padding: 0.5rem 0;
+            display: none;
+        }
+
+        .search-suggest li {
+            list-style: none;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+        }
+
+        .search-suggest li:hover {
+            background-color: #f5f7fa;
+        }
+
+        .user-btn {
+            padding: 0.5rem 1rem;
+            background-color: #2e65cc;
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        /* 主内容区 */
+        .main {
+            max-width: 1200px;
+            margin: 80px auto 2rem;
+            padding: 0 1rem;
+        }
+
+        /* 板块通用样式 */
+        .section {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .more-link {
+            font-size: 0.8rem;
+            color: #2e65cc;
+            text-decoration: none;
+        }
+
+        .tag-list {
+            display: flex;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .tag {
+            padding: 0.3rem 0.8rem;
+            background-color: #f0f2f5;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .tag.active {
+            background-color: #2e65cc;
+            color: #fff;
+        }
+
+        /* 图书卡片网格 */
+        .book-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .book-card {
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.2s;
+        }
+
+        .book-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .book-cover {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .book-info {
+            padding: 0.8rem;
+        }
+
+        .book-name {
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-bottom: 0.3rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .book-author {
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .book-status {
+            font-size: 0.7rem;
+            color: #28a745;
+        }
+
+        /* 小众爱好 - 横向滚动 */
+        .scroll-container {
+            overflow-x: auto;
+            padding-bottom: 1rem;
+        }
+
+        .scroll-container::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .scroll-container::-webkit-scrollbar-thumb {
+            background-color: #ddd;
+            border-radius: 3px;
+        }
+
+        .book-scroll {
+            display: flex;
+            gap: 1.2rem;
+        }
+
+        /* 最新上架 - 列表样式 */
+        .book-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .book-item {
+            background: #fff;
+            border-radius: 8px;
+            padding: 1rem;
+            display: flex;
+            gap: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .book-item-cover {
+            width: 80px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .book-item-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .book-item-title {
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .book-item-desc {
+            font-size: 0.8rem;
+            color: #666;
+            margin: 0.5rem 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .book-item-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .book-item-owner {
+            font-size: 0.8rem;
+            color: #999;
+        }
+
+        .detail-btn {
+            padding: 0.4rem 0.8rem;
+            background-color: #2e65cc;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        /* 页脚 */
+        .footer {
+            background-color: #fff;
+            padding: 2rem 1rem;
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+            border-top: 1px solid #eee;
+        }
+
+        /* 响应式适配 */
+        @media (max-width: 768px) {
+            .header-container {
+                flex-wrap: wrap;
+            }
+
+            .search-box {
+                order: 3;
+                width: 100%;
+                margin: 0.8rem 0 0;
+            }
+
+            .book-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
+
+            .book-cover {
+                height: 160px;
+            }
+
+            .book-item {
+                flex-direction: column;
+            }
+
+            .book-item-cover {
+                width: 100%;
+                height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <header class="header">
+        <div class="header-container">
+            <!-- Logo -->
+            <a href="#" class="logo">
+                <img src="https://img.icons8.com/fluency/96/000000/book.png" alt="平台logo">
+                <span class="logo-text">校园图书共享平台</span>
+            </a>
+
+            <!-- 搜索框 -->
+            <div class="search-box">
+                <i class="search-icon">🔍</i>
+                <input type="text" class="search-input" placeholder="搜索书名、作者、ISBN..." id="searchInput">
+                <!-- 搜索建议列表 -->
+                <ul class="search-suggest" id="searchSuggest"></ul>
+            </div>
+
+            <!-- 个人中心按钮 -->
+            <button class="user-btn">个人中心</button>
+        </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="main">
+        <!-- 热门必读板块 -->
+        <section class="section">
+            <div class="section-title">
+                <span>热门必读</span>
+                <a href="#" class="more-link">查看更多 →</a>
+            </div>
+
+            <!-- 分类标签 -->
+            <div class="tag-list">
+                <span class="tag active">全部</span>
+                <span class="tag">科普</span>
+                <span class="tag">小说</span>
+                <span class="tag">艺术</span>
+                <span class="tag">历史</span>
+                <span class="tag">计算机</span>
+            </div>
+
+            <!-- 图书卡片网格 -->
+            <div class="book-grid">
+                <!-- 图书卡片1 -->
+                <div class="book-card">
+                    <img src="https://img9.doubanio.com/view/subject/s/public/s2768378.jpg" alt="三体" class="book-cover">
+                    <div class="book-info">
+                        <div class="book-name">三体</div>
+                        <div class="book-author">刘慈欣</div>
+                        <div class="book-status">可借阅</div>
+                    </div>
+                </div>
+
+                <!-- 图书卡片2 -->
+                <div class="book-card">
+                    <img src="https://img9.doubanio.com/view/subject/s/public/s3366812.jpg" alt="人类简史" class="book-cover">
+                    <div class="book-info">
+                        <div class="book-name">人类简史</div>
+                        <div class="book-author">尤瓦尔·赫拉利</div>
+                        <div class="book-status">可借阅</div>
+                    </div>
+                </div>
+
+                <!-- 图书卡片3 -->
+                <div class="book-card">
+                    <img src="https://img2.doubanio.com/view/subject/s/public/s1078040.jpg" alt="活着" class="book-cover">
+                    <div class="book-info">
+                        <div class="book-name">活着</div>
+                        <div class="book-author">余华</div>
+                        <div class="book-status">可借阅</div>
+                    </div>
+                </div>
+
+                <!-- 图书卡片4 -->
+                <div class="book-card">
+                    <img src="https://img2.doubanio.com/view/subject/s/public/s1928937.jpg" alt="艺术的故事" class="book-cover">
+                    <div class="book-info">
+                        <div class="book-name">艺术的故事</div>
+                        <div class="book-author">贡布里希</div>
+                        <div class="book-status">可借阅</div>
+                    </div>
+                </div>
+
+                <!-- 图书卡片5 -->
+                <div class="book-card">
+                    <img src="https://img9.doubanio.com/view/subject/s/public/s2943772.jpg" alt="深度学习" class="book-cover">
+                    <div class="book-info">
+                        <div class="book-name">深度学习</div>
+                        <div class="book-author">Ian Goodfellow</div>
+                        <div class="book-status">可借阅</div>
+                    </div>
+                </div>
+
+                <!-- 图书卡片6 -->
+                <div class="book-card">
+                    <img src="https://img9.doubanio.com/view/subject/s/public/s3358337.jpg" alt="思考，快与慢" class="book-cover">
+                    <div class="book-info">
+                        <div class="book-name">思考，快与慢</div>
+                        <div class="book-author">丹尼尔·卡尼曼</div>
+                        <div class="book-status">可借阅</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 小众爱好板块 -->
+        <section class="section">
+            <div class="section-title">
+                <span>小众爱好</span>
+                <a href="#" class="more-link">查看更多 →</a>
+            </div>
+
+            <!-- 横向滚动图书列表 -->
+            <div class="scroll-container">
+                <div class="book-scroll">
+                    <!-- 图书卡片1 -->
+                    <div class="book-card" style="min-width: 160px;">
+                        <img src="https://img9.doubanio.com/view/subject/s/public/s2982637.jpg" alt="鸟类图鉴" class="book-cover">
+                        <div class="book-info">
+                            <div class="book-name">鸟类图鉴</div>
+                            <div class="book-author">约翰·奥杜邦</div>
+                            <div class="book-status">可借阅</div>
+                        </div>
+                    </div>
+
+                    <!-- 图书卡片2 -->
+                    <div class="book-card" style="min-width: 160px;">
+                        <img src="https://img2.doubanio.com/view/subject/s/public/s3344903.jpg" alt="复古相机收藏" class="book-cover">
+                        <div class="book-info">
+                            <div class="book-name">复古相机收藏指南</div>
+                            <div class="book-author">马丁·帕尔</div>
+                            <div class="book-status">可借阅</div>
+                        </div>
+                    </div>
+
+                    <!-- 图书卡片3 -->
+                    <div class="book-card" style="min-width: 160px;">
+                        <img src="https://img9.doubanio.com/view/subject/s/public/s3495321.jpg" alt="咖啡品鉴大全" class="book-cover">
+                        <div class="book-info">
+                            <div class="book-name">咖啡品鉴大全</div>
+                            <div class="book-author">詹姆斯·霍夫曼</div>
+                            <div class="book-status">可借阅</div>
+                        </div>
+                    </div>
+
+                    <!-- 图书卡片4 -->
+                    <div class="book-card" style="min-width: 160px;">
+                        <img src="https://img2.doubanio.com/view/subject/s/public/s1913208.jpg" alt="围棋入门" class="book-cover">
+                        <div class="book-info">
+                            <div class="book-name">围棋入门到精通</div>
+                            <div class="book-author">吴清源</div>
+                            <div class="book-status">可借阅</div>
+                        </div>
+                    </div>
+
+                    <!-- 图书卡片5 -->
+                    <div class="book-card" style="min-width: 160px;">
+                        <img src="https://img9.doubanio.com/view/subject/s/public/s2394111.jpg" alt="独立电影制作" class="book-cover">
+                        <div class="book-info">
+                            <div class="book-name">独立电影制作手册</div>
+                            <div class="book-author">罗伯特·罗德里格斯</div>
+                            <div class="book-status">可借阅</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 最新上架板块 -->
+        <section class="section">
+            <div class="section-title">
+                <span>最新上架</span>
+                <a href="#" class="more-link">查看更多 →</a>
+            </div>
+
+            <!-- 图书列表 -->
+            <div class="book-list">
+                <!-- 图书项1 -->
+                <div class="book-item">
+                    <img src="https://img9.doubanio.com/view/subject/s/public/s3364140.jpg" alt="Python编程" class="book-item-cover">
+                    <div class="book-item-info">
+                        <div>
+                            <div class="book-item-title">Python编程：从入门到实践</div>
+                            <div class="book-author">埃里克·马瑟斯</div>
+                            <div class="book-item-desc">本书是一本全面的Python编程入门教程，适合零基础的学习者，包含丰富的实例和练习，帮助快速掌握Python技能。</div>
+                        </div>
+                        <div class="book-item-meta">
+                            <div class="book-item-owner">持有者：计算机学院-小李</div>
+                            <button class="detail-btn">查看详情</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 图书项2 -->
+                <div class="book-item">
+                    <img src="https://img2.doubanio.com/view/subject/s/public/s1798864.jpg" alt="月亮与六便士" class="book-item-cover">
+                    <div class="book-item-info">
+                        <div>
+                            <div class="book-item-title">月亮与六便士</div>
+                            <div class="book-author">毛姆</div>
+                            <div class="book-item-desc">以法国印象派画家高更的生平为素材，讲述了一个中年股票经纪人抛弃家庭和事业，追求艺术理想的故事。</div>
+                        </div>
+                        <div class="book-item-meta">
+                            <div class="book-item-owner">持有者：文学院-小红</div>
+                            <button class="detail-btn">查看详情</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 图书项3 -->
+                <div class="book-item">
+                    <img src="https://img9.doubanio.com/view/subject/s/public/s2997160.jpg" alt="小王子" class="book-item-cover">
+                    <div class="book-item-info">
+                        <div>
+                            <div class="book-item-title">小王子</div>
+                            <div class="book-author">安托万·德·圣-埃克苏佩里</div>
+                            <div class="book-item-desc">用诗意的语言讲述了小王子的星际旅行，探讨了爱与责任、成长与孤独的永恒主题，是经典的儿童文学与成人哲理书。</div>
+                        </div>
+                        <div class="book-item-meta">
+                            <div class="book-item-owner">持有者：外国语学院-小明</div>
+                            <button class="detail-btn">查看详情</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <p>校园图书共享平台 © 2025 版权所有 | 让图书资源循环起来</p>
+    </footer>
+
+    <!-- 交互脚本 -->
+    <script>
+        // 模拟图书数据（用于搜索建议）
+        const bookData = [
+            { name: "三体", author: "刘慈欣", isbn: "9787536692930" },
+            { name: "人类简史", author: "尤瓦尔·赫拉利", isbn: "9787508647357" },
+            { name: "活着", author: "余华", isbn: "9787506334863" },
+            { name: "艺术的故事", author: "贡布里希", isbn: "9787549411345" },
+            { name: "深度学习", author: "Ian Goodfellow", isbn: "9787115461476" },
+            { name: "Python编程：从入门到实践", author: "埃里克·马瑟斯", isbn: "9787115428028" },
+            { name: "月亮与六便士", author: "毛姆", isbn: "9787532752096" },
+            { name: "思考，快与慢", author: "丹尼尔·卡尼曼", isbn: "9787508633558" }
+        ];
+
+        // 搜索框实时建议功能
+        const searchInput = document.getElementById("searchInput");
+        const searchSuggest = document.getElementById("searchSuggest");
+
+        searchInput.addEventListener("input", function() {
+            const keyword = this.value.trim().toLowerCase();
+            searchSuggest.innerHTML = "";
+
+            if (keyword === "") {
+                searchSuggest.style.display = "none";
+                return;
+            }
+
+            // 模糊匹配图书名、作者、ISBN
+            const matchBooks = bookData.filter(book => 
+                book.name.toLowerCase().includes(keyword) || 
+                book.author.toLowerCase().includes(keyword) || 
+                book.isbn.includes(keyword)
+            );
+
+            if (matchBooks.length > 0) {
+                matchBooks.forEach(book => {
+                    const li = document.createElement("li");
+                    li.textContent = `${book.name} - ${book.author}`;
+                    searchSuggest.appendChild(li);
+                });
+                searchSuggest.style.display = "block";
+            } else {
+                const li = document.createElement("li");
+                li.textContent = "未找到匹配图书";
+                searchSuggest.appendChild(li);
+                searchSuggest.style.display = "block";
+            }
         });
-      });
-    });
 
-    // 点击页面其他地方关闭搜索结果
-    document.addEventListener('click', (e) => {
-      if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
-        searchResults.classList.add('hidden');
-      }
-    });
-
-    // 高亮搜索匹配的文本
-    function highlightMatch(text, query) {
-      const regex = new RegExp(`(${query})`, 'gi');
-      return text.replace(regex, '<span class="bg-yellow-200">$1</span>');
-    }
-
-    // 图书卡片点击事件
-    document.querySelectorAll('.book-card').forEach(card => {
-      card.addEventListener('click', () => {
-        const bookId = parseInt(card.dataset.id);
-        const book = books.find(b => b.id === bookId) || books[0];
-        // 在实际应用中，这里会跳转到图书详情页
-        alert(`查看图书详情: ${book.title} (${book.status})`);
-      });
-    });
-
-    // 打开个人中心
-    userCenterBtn.addEventListener('click', () => {
-      userCenter.classList.remove('translate-x-full');
-      overlay.classList.remove('hidden');
-      
-      setTimeout(() => {
-        overlay.classList.add('opacity-100');
-      }, 10);
-      
-      // 禁止背景滚动
-      document.body.style.overflow = 'hidden';
-    });
-
-    // 关闭个人中心
-    function closeUserCenterSidebar() {
-      userCenter.classList.add('translate-x-full');
-      overlay.classList.remove('opacity-100');
-      
-      setTimeout(() => {
-        overlay.classList.add('hidden');
-        document.body.style.overflow = '';
-      }, 300);
-    }
-
-    closeUserCenter.addEventListener('click', closeUserCenterSidebar);
-    overlay.addEventListener('click', closeUserCenterSidebar);
-
-    // 分类按钮点击事件
-    document.querySelectorAll('.whitespace-nowrap.px-4.py-2').forEach(btn => {
-      btn.addEventListener('click', () => {
-        // 移除所有按钮的选中状态
-        document.querySelectorAll('.whitespace-nowrap.px-4.py-2').forEach(b => {
-          b.classList.remove('bg-primary', 'text-white');
-          b.classList.add('bg-white', 'text-gray-700', 'hover:bg-gray-100');
+        // 点击页面其他区域关闭搜索建议
+        document.addEventListener("click", function(e) {
+            if (!searchInput.contains(e.target) && !searchSuggest.contains(e.target)) {
+                searchSuggest.style.display = "none";
+            }
         });
-        
-        // 设置当前按钮为选中状态
-        btn.classList.remove('bg-white', 'text-gray-700', 'hover:bg-gray-100');
-        btn.classList.add('bg-primary', 'text-white');
-        
-        // 在实际应用中，这里会根据分类筛选图书
-        alert(`查看分类: ${btn.textContent.trim()}`);
-      });
-    });
-  </script>
+
+        // 分类标签切换（简单模拟）
+        const tags = document.querySelectorAll(".tag");
+        tags.forEach(tag => {
+            tag.addEventListener("click", function() {
+                tags.forEach(t => t.classList.remove("active"));
+                this.classList.add("active");
+            });
+        });
+    </script>
 </body>
 </html>
